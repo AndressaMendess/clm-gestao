@@ -1,5 +1,5 @@
 import { Sidebar } from "./components/Sidebar";
-import { StudentsPageTabs } from "./components/StudentsPageTabs";
+import { StudentsPageDrawer } from "./components/StudentsPageDrawer";
 import { TopBar } from "./components/TopBar";
 
 export default function App() {
@@ -8,7 +8,7 @@ export default function App() {
       <Sidebar />
       <div className="app-content">
         <TopBar />
-        <StudentsPageTabs />
+        <StudentsPageDrawer />
       </div>
     </div>
   );
