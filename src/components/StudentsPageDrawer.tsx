@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import { Checkbox } from "@/src/components/ui/checkbox";
+import { Input } from "@/src/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
 import { assetUrls } from "../data/assets";
 import { students } from "../data/students";
 
@@ -296,10 +301,10 @@ function normalizeStudentText(value: string) {
 
 function FilterButton({ label }: FilterButtonProps) {
   return (
-    <button className="filter-button" type="button">
+    <Button className="filter-button" variant="outline">
       <span>{label}</span>
       <img src={assetUrls.icons.caretDown} alt="" aria-hidden="true" />
-    </button>
+    </Button>
   );
 }
 
@@ -307,15 +312,19 @@ function StatusBadge({ status }: { status: StudentStatus }) {
   const tone = status === "Ativo" ? "success" : "error";
 
   return (
-    <span className={`status-badge status-badge--${tone}`}>
+    <Badge className={`status-badge status-badge--${tone}`} variant={tone}>
       <span className="status-badge__dot" aria-hidden="true" />
       {status}
-    </span>
+    </Badge>
   );
 }
 
 function Pill({ label, tone }: { label: string; tone: StudentTone }) {
-  return <span className={`pill pill--${tone}`}>{label}</span>;
+  return (
+    <Badge className={`pill pill--${tone}`} variant={tone}>
+      {label}
+    </Badge>
+  );
 }
 
 function DrawerField({ label, value }: { label: string; value: string }) {
@@ -666,26 +675,30 @@ function StudentDrawer({
             <img src={assetUrls.icons.trash} alt="" aria-hidden="true" />
           </button>
         </div>
+        <Tabs
+          className="student-drawer__tabs-shell"
+          value={activeTab}
+          onValueChange={(value) => onTabChange(value as DrawerTab)}
+        >
+          <TabsList className="student-drawer__tabs" aria-label="Seções do aluno">
+            {drawerTabs.map((tab) => (
+              <TabsTrigger key={tab.id} className="student-drawer__tab" value={tab.id}>
+                {tab.label}
+                {tab.id === "attachments" ? (
+                  <span className="student-drawer__tab-badge">{student.details.attachmentsCount}</span>
+                ) : null}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        <nav className="student-drawer__tabs" aria-label="Seções do aluno">
-          {drawerTabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`student-drawer__tab ${activeTab === tab.id ? "is-active" : ""}`}
-              type="button"
-              onClick={() => onTabChange(tab.id)}
-            >
-              {tab.label}
-              {tab.id === "attachments" ? (
-                <span className="student-drawer__tab-badge">{student.details.attachmentsCount}</span>
-              ) : null}
-            </button>
-          ))}
-        </nav>
-
-        <div className="student-drawer__content">
-          <DrawerTabContent student={student} activeTab={activeTab} />
-        </div>
+          <div className="student-drawer__content">
+            {drawerTabs.map((tab) => (
+              <TabsContent key={tab.id} value={tab.id}>
+                <DrawerTabContent student={student} activeTab={tab.id} />
+              </TabsContent>
+            ))}
+          </div>
+        </Tabs>
       </aside>
     </div>
   );
@@ -736,17 +749,18 @@ export function StudentsPageDrawer() {
             <p>Gerencie o cadastro completo de alunos.</p>
           </div>
 
-          <button className="primary-button" type="button">
+          <Button className="primary-button">
             <img src={assetUrls.icons.plus} alt="" aria-hidden="true" />
             <span>Adicionar aluno</span>
-          </button>
+          </Button>
         </section>
 
         <section className="filters" aria-label="Busca e filtros">
           <label className="search-field">
             <img src={assetUrls.icons.search} alt="" aria-hidden="true" />
-            <input
+            <Input
               type="text"
+              className="search-field__input"
               placeholder="Buscar por nome, telefone ou email..."
               aria-label="Buscar por nome, telefone ou email"
             />
@@ -763,7 +777,9 @@ export function StudentsPageDrawer() {
           <header className="table-card__header">
             <div className="table-card__title">
               <h2 id="students-title">Alunos</h2>
-              <span className="count-badge">{studentsWithDetails.length} alunos</span>
+              <Badge className="count-badge" variant="violet">
+                {studentsWithDetails.length} alunos
+              </Badge>
             </div>
           </header>
 
@@ -773,7 +789,7 @@ export function StudentsPageDrawer() {
                 <tr>
                   <th>
                     <div className="header-with-checkbox">
-                      <input type="checkbox" aria-label="Selecionar todos" />
+                      <Checkbox aria-label="Selecionar todos" />
                       <span>Nome</span>
                     </div>
                   </th>
@@ -794,7 +810,7 @@ export function StudentsPageDrawer() {
                   <tr key={student.id}>
                     <td>
                       <div className="student-cell">
-                        <input type="checkbox" aria-label={`Selecionar ${student.name}`} />
+                        <Checkbox aria-label={`Selecionar ${student.name}`} />
 
                         {student.avatar ? (
                           <img className="student-avatar" src={student.avatar} alt="" aria-hidden="true" />

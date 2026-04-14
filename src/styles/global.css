@@ -117,8 +117,20 @@ img { display: block; max-width: 100%; }
 }
 
 .search-field img { width: 20px; height: 20px; }
-.search-field input { width: 100%; border: 0; outline: 0; background: transparent; color: #101828; font-size: 14px; line-height: 20px; }
-.search-field input::placeholder { color: rgba(10, 10, 10, 0.5); }
+.search-field__input {
+  width: 100%;
+  height: auto;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+  color: #101828;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.search-field__input::placeholder { color: rgba(10, 10, 10, 0.5); }
+.search-field__input:focus-visible { box-shadow: none; }
 .filters__group { display: flex; flex: 1; flex-wrap: wrap; gap: var(--spacing-8); }
 
 .filter-button {
@@ -307,8 +319,16 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
 
 .student-drawer__delete img { width: 20px; height: 20px; }
 
+.student-drawer__tabs-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .student-drawer__tabs {
   display: flex;
+  flex: 0 0 auto;
   gap: var(--spacing-20);
   border-top: 1px solid var(--color-surface-border);
   border-bottom: 1px solid var(--color-surface-border);
@@ -319,6 +339,7 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
 .student-drawer__tab {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   min-height: 46px;
   border-bottom: 1px solid transparent;
@@ -327,7 +348,7 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   white-space: nowrap;
 }
 
-.student-drawer__tab.is-active {
+.student-drawer__tab[data-state="active"] {
   border-bottom-color: var(--color-brand-orange);
   color: var(--color-brand-orange);
 }
@@ -349,11 +370,17 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
 .student-drawer__content {
   display: flex;
   flex: 1;
+  min-height: 0;
   flex-direction: column;
-  gap: var(--spacing-16);
   overflow-y: auto;
   background: var(--color-surface-page);
   padding: var(--spacing-24);
+}
+
+.student-drawer__content > [role="tabpanel"] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
 }
 
 .student-card {
