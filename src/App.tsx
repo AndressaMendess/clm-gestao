@@ -10,6 +10,7 @@ export default function App() {
   const [activePage, setActivePage] = useState<DashboardPage>("overview");
   const [attendanceEntryPoint, setAttendanceEntryPoint] = useState<"history" | "start">("history");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (!isSidebarOpen) {
@@ -25,11 +26,13 @@ export default function App() {
   }, [isSidebarOpen]);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isSidebarCollapsed ? "app-shell--sidebar-collapsed" : ""}`}>
       <DashboardSidebar
         activePage={activePage}
+        collapsed={isSidebarCollapsed}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onToggleCollapsed={() => setIsSidebarCollapsed((current) => !current)}
         onNavigate={(page) => {
           setActivePage(page);
           if (page !== "attendance") {

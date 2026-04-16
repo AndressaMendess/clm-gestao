@@ -86,7 +86,7 @@ img { display: block; max-width: 100%; }
   background: #f2f4f7;
   color: #344054;
 }
-.sidebar__content { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-24); padding: var(--spacing-24) var(--spacing-16); overflow: visible; }
+.sidebar__content { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-24); padding: var(--spacing-16) var(--spacing-16); overflow: visible; }
 .sidebar__nav { display: flex; flex-direction: column; gap: var(--spacing-8); }
 .sidebar__divider { height: 1px; background: #e5e7eb; }
 
@@ -250,7 +250,6 @@ img { display: block; max-width: 100%; }
   display: flex;
   align-items: center;
   gap: 10px;
-  width: min(100%, 581px);
   min-height: 38px;
   border: 1px solid #d0d5dd;
   border-radius: 10px;
