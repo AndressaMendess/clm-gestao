@@ -1,5 +1,7 @@
 import { Menu } from "lucide-react";
 
+import { assetUrls } from "../data/assets";
+
 export function TopBar({ onMenuToggle }: { onMenuToggle: () => void }) {
   return (
     <header className="topbar">
@@ -9,6 +11,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle: () => void }) {
       <p className="topbar__quote">
         "A musica e a linguagem universal da humanidade." - Henry Wadsworth Longfellow
       </p>
+      <img className="topbar__logo" src={assetUrls.logo} alt="Escola de Musica" />
     </header>
   );
 }

@@ -11,27 +11,34 @@
 }
 
 .app-shell {
+  display: grid;
+  min-height: 100vh;
   background: var(--color-surface-page);
   grid-template-columns: 256px minmax(0, 1fr);
 }
 
 .dashboard-app-content {
-  padding: 14px 16px 14px 0;
+  padding: 16px;
+  background: var(--color-background-secondary);
 }
 
 .dashboard-surface {
   display: flex;
-  min-height: calc(100vh - 28px);
+  min-height: calc(100vh - 32px);
   flex: 1;
   flex-direction: column;
   overflow: hidden;
   border-radius: 32px;
-  background: var(--color-surface-card);
+  background: var(--color-background-primary);
 }
 
 .dashboard-sidebar {
   position: relative;
   z-index: 40;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--color-background-secondary);
   border-right: 0;
 }
 
@@ -39,7 +46,7 @@
   position: fixed;
   inset: 0;
   z-index: 35;
-  background: rgba(15, 23, 42, 0.48);
+  background: color-mix(in srgb, var(--color-content-always-dark) 48%, transparent);
   opacity: 0;
   pointer-events: none;
   transition: opacity 180ms ease;
@@ -54,7 +61,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 23px 24px 24px;
+  min-height: 82px;
+  padding: 24px;
+  border-bottom: 1px solid var(--color-surface-divider);
 }
 
 .sidebar__logo {
@@ -69,11 +78,11 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  border: 1px solid rgba(17, 58, 82, 0.12);
+  border: 1px solid var(--color-surface-border-soft);
   border-radius: 14px;
-  background: #fff;
-  color: #113a52;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  background: var(--color-surface-card);
+  color: var(--color-brand-secondary-main);
+  box-shadow: var(--color-page-shadow);
 }
 
 .sidebar__close svg,
@@ -83,20 +92,34 @@
 }
 
 .sidebar__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   gap: 24px;
   padding: 24px 16px 0;
 }
 
 .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
   min-height: 60px;
   border-radius: 16px;
   padding: 18px 16px;
-  color: #414141;
+  color: var(--color-neutral-400);
+  text-align: left;
 }
 
 .nav-item--active {
-  background: #f1672c;
-  color: #fff;
+  background: var(--color-brand-primary-main);
+  color: var(--color-content-always-light);
+}
+
+.sidebar__divider {
+  width: 100%;
+  height: 1px;
+  background: var(--color-surface-divider);
 }
 
 .nav-item__icon,
@@ -111,32 +134,79 @@
 
 .sidebar__footer {
   padding: 17px 16px 18px;
+  border-top: 1px solid var(--color-surface-divider);
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-user__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.sidebar-user__name,
+.sidebar-user__email {
+  margin: 0;
+}
+
+.sidebar-user__name {
+  color: var(--color-content-primary);
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.4px;
+}
+
+.sidebar-user__email {
+  color: var(--color-neutral-600);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.35px;
 }
 
 .logout-button {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
   width: 100%;
   min-height: 36px;
   margin-top: 12px;
+  gap: 8px;
+  border-radius: 14px;
   padding: 8px 12px;
+  color: var(--color-neutral-400);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.35px;
 }
 
 .topbar {
   display: flex;
   align-items: center;
-  gap: 16px;
   min-height: 74px;
   padding: 24px 16px 23px;
 }
 
 .topbar__quote {
-  flex: 1;
   margin: 0;
-  color: #18181b;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.24;
-  text-align: center;
+  color: var(--color-content-primary);
+  font-size: 18px;
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-body-line-height);
+  letter-spacing: var(--text-body-letter-spacing);
+  text-align: left;
+}
+
+.topbar__logo {
+  display: none;
+  width: 112px;
+  height: 33px;
+  object-fit: contain;
 }
 
 .attendance-call-finish-button--mobile {
@@ -158,7 +228,7 @@
 }
 
 .dashboard-page__copy p {
-  color: #71717a;
+  color: var(--color-content-tertiary);
   font-size: 18px;
   font-weight: 500;
   line-height: 28px;
@@ -173,8 +243,8 @@
   min-height: 52px;
   border-radius: 16px;
   padding: 14px 24px;
-  background: #f1672c;
-  color: #fff;
+  background: var(--color-button-primary-background-enabled);
+  color: var(--color-button-primary-content-enabled);
   box-shadow: none;
 }
 
@@ -201,18 +271,18 @@
   min-height: 56px;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid rgba(17, 58, 82, 0.08);
+  border: 1px solid var(--color-surface-border-soft);
   border-radius: 12px;
   padding: 12px 16px;
-  background: #fff;
-  color: #113a52;
+  background: var(--color-surface-card);
+  color: var(--color-brand-secondary-main);
 }
 
 .dashboard-filter-button select {
   width: 100%;
   border: 0;
   background: transparent;
-  color: #113a52;
+  color: var(--color-brand-secondary-main);
   font-size: 16px;
   outline: none;
   appearance: none;
@@ -220,7 +290,7 @@
 }
 
 .dashboard-filter-button select option {
-  color: #113a52;
+  color: var(--color-brand-secondary-main);
 }
 
 .dashboard-filter-button span {
@@ -229,17 +299,17 @@
 }
 
 .dashboard-page--attendance {
-  border-top: 1px solid #eaecf0;
+  border-top: 1px solid var(--color-surface-border);
 }
 
 .dashboard-page--attendance-start {
   gap: 32px;
-  border-top: 1px solid #eaecf0;
+  border-top: 1px solid var(--color-surface-border);
 }
 
 .dashboard-page--attendance-call {
   gap: 28px;
-  border-top: 1px solid #eaecf0;
+  border-top: 1px solid var(--color-surface-border);
 }
 
 .attendance-start-header {
@@ -272,7 +342,7 @@
 }
 
 .attendance-start-panel {
-  border: 1px solid #eaeaec;
+  border: 1px solid var(--color-surface-border);
   border-radius: 24px;
   background: var(--color-background-always-light);
   padding: 16px;
@@ -291,7 +361,7 @@
 }
 
 .attendance-start-group__title {
-  color: #101828;
+  color: var(--color-content-primary);
   font-size: var(--text-body-x-large-size);
   font-weight: var(--font-weight-semibold);
   line-height: var(--text-body-line-height);
@@ -310,7 +380,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border: 1px solid #eaeaec;
+  border: 1px solid var(--color-surface-border);
   border-radius: 16px;
   padding: 20px 16px;
   background: var(--color-background-always-light);
@@ -324,7 +394,7 @@
 .attendance-start-card:hover,
 .attendance-start-card:focus-visible {
   border-color: var(--color-brand-primary-soft);
-  box-shadow: 0 0 0 3px rgba(241, 103, 44, 0.08);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary-main) 8%, transparent);
   transform: translateY(-1px);
 }
 
@@ -336,7 +406,7 @@
 }
 
 .attendance-start-card__content strong {
-  color: #101828;
+  color: var(--color-content-primary);
   font-size: var(--text-body-x-large-size);
   font-weight: var(--font-weight-semibold);
   line-height: var(--text-body-line-height);
@@ -348,7 +418,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  color: #4a5565;
+  color: var(--color-neutral-600);
   font-size: var(--text-body-medium-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--text-body-line-height);
@@ -356,11 +426,11 @@
 }
 
 .attendance-start-card__dot {
-  color: #99a1af;
+  color: var(--color-border-tertiary);
 }
 
 .attendance-start-card__icon {
-  color: #98a2b3;
+  color: var(--color-border-tertiary);
 }
 
 .attendance-call-header {
@@ -396,7 +466,7 @@
 .attendance-call-finish-button:hover,
 .attendance-call-finish-button:focus-visible {
   background: var(--color-button-primary-background-hover);
-  box-shadow: 0 0 0 3px rgba(241, 103, 44, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary-main) 18%, transparent);
 }
 
 .attendance-call-finish-button:active {
@@ -414,14 +484,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #4a5565;
+  color: var(--color-neutral-600);
   font-size: var(--text-body-medium-size);
   line-height: var(--text-body-line-height);
   letter-spacing: var(--text-body-letter-spacing);
 }
 
 .attendance-call-summary__item strong {
-  color: #101828;
+  color: var(--color-content-primary);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -436,17 +506,15 @@
 }
 
 .attendance-call-summary__item--pending .attendance-call-summary__dot {
-  background: #d1d5dc;
+  background: var(--color-border-secondary);
 }
 
 .attendance-call-table-card {
   overflow: hidden;
-  border: 1px solid #eaecf0;
+  border: 1px solid var(--color-surface-border);
   border-radius: 16px;
-  background: #fff;
-  box-shadow:
-    0 4px 8px -2px rgba(16, 24, 40, 0.1),
-    0 2px 4px -2px rgba(16, 24, 40, 0.06);
+  background: var(--color-surface-card);
+  box-shadow: var(--color-page-shadow);
 }
 
 .attendance-call-table {
@@ -457,7 +525,7 @@
 .attendance-call-table__row-shell {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid #eaecf0;
+  border-top: 1px solid var(--color-surface-border);
 }
 
 .attendance-call-table__row-shell:first-of-type {
@@ -465,7 +533,7 @@
 }
 
 .attendance-call-table__row-shell.is-present .attendance-call-table__row {
-  background: #f0fdf4;
+  background: var(--color-feedback-success-background);
 }
 
 .attendance-call-table__header,
@@ -476,8 +544,8 @@
 }
 
 .attendance-call-table__header {
-  background: #f9fafb;
-  color: #667085;
+  background: var(--color-surface-header);
+  color: var(--color-neutral-600);
   font-size: var(--text-body-medium-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--text-body-line-height);
@@ -506,7 +574,7 @@
 }
 
 .attendance-call-table__cell--name strong {
-  color: #101828;
+  color: var(--color-content-primary);
   font-size: var(--text-body-medium-size);
   font-weight: var(--font-weight-semibold);
   line-height: var(--text-body-line-height);
@@ -519,9 +587,9 @@
   height: 32px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface-card);
   color: transparent;
   transition:
     background-color 180ms ease,
@@ -533,7 +601,7 @@
 .attendance-status-toggle:hover,
 .attendance-status-toggle:focus-visible {
   border-color: var(--color-brand-secondary-soft);
-  box-shadow: 0 0 0 3px rgba(17, 58, 82, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-secondary-main) 10%, transparent);
 }
 
 .attendance-status-toggle:active {
@@ -541,9 +609,9 @@
 }
 
 .attendance-status-toggle.is-checked {
-  border-color: #00bf47;
+  border-color: var(--color-feedback-success-content);
   background: var(--color-feedback-success-content);
-  color: #fff;
+  color: var(--color-content-always-light);
 }
 
 .attendance-status-toggle svg {
@@ -561,8 +629,8 @@
   flex-shrink: 0;
   overflow: hidden;
   border-radius: 999px;
-  background: #f4ebff;
-  color: #6941c6;
+  background: var(--color-accent-purple-background);
+  color: var(--color-accent-purple-content);
   font-size: 16px;
   font-weight: var(--font-weight-medium);
 }
@@ -579,9 +647,9 @@
   justify-content: center;
   min-height: 22px;
   border-radius: 999px;
-  background: #f9f5ff;
+  background: var(--color-accent-purple-background);
   padding: 2px 8px;
-  color: #6941c6;
+  color: var(--color-accent-purple-content);
   font-size: 12px;
   font-weight: var(--font-weight-medium);
   line-height: 18px;
@@ -591,7 +659,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #414141;
+  color: var(--color-neutral-400);
   font-size: var(--text-body-medium-size);
   line-height: var(--text-body-line-height);
 }
@@ -603,7 +671,7 @@
 }
 
 .attendance-time-value--empty {
-  color: #414141;
+  color: var(--color-neutral-400);
 }
 
 .attendance-note-button {
@@ -615,7 +683,7 @@
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: #475467;
+  color: var(--color-neutral-600);
   transition:
     background-color 180ms ease,
     color 180ms ease,
@@ -624,12 +692,12 @@
 
 .attendance-note-button:hover,
 .attendance-note-button:focus-visible {
-  background: #f9fafb;
-  box-shadow: 0 0 0 3px rgba(17, 58, 82, 0.08);
+  background: var(--color-surface-header);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-secondary-main) 8%, transparent);
 }
 
 .attendance-note-button:active {
-  background: #f2f4f7;
+  background: var(--color-background-secondary);
 }
 
 .attendance-note-button.has-note {
@@ -642,8 +710,8 @@
 }
 
 .attendance-note-editor {
-  border-top: 1px solid #eaecf0;
-  background: #fffaf5;
+  border-top: 1px solid var(--color-surface-border);
+  background: var(--color-brand-primary-subtle);
   padding: 0 16px 16px 16px;
 }
 
@@ -652,11 +720,11 @@
   min-height: 88px;
   margin-top: 16px;
   resize: vertical;
-  border: 1px solid rgba(17, 58, 82, 0.14);
+  border: 1px solid color-mix(in srgb, var(--color-brand-secondary-main) 14%, transparent);
   border-radius: 12px;
   padding: 12px 14px;
-  background: #fff;
-  color: #113a52;
+  background: var(--color-surface-card);
+  color: var(--color-brand-secondary-main);
   font: inherit;
   line-height: var(--text-body-line-height);
   outline: none;
@@ -666,16 +734,16 @@
 }
 
 .attendance-note-editor__field::placeholder {
-  color: #98a2b3;
+  color: var(--color-border-tertiary);
 }
 
 .attendance-note-editor__field:hover {
-  border-color: rgba(17, 58, 82, 0.28);
+  border-color: color-mix(in srgb, var(--color-brand-secondary-main) 28%, transparent);
 }
 
 .attendance-note-editor__field:focus-visible {
   border-color: var(--color-brand-primary-main);
-  box-shadow: 0 0 0 3px rgba(241, 103, 44, 0.14);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary-main) 14%, transparent);
 }
 
 .attendance-modal-overlay {
@@ -686,16 +754,16 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.24);
+  background: color-mix(in srgb, var(--color-content-always-dark) 24%, transparent);
   backdrop-filter: blur(2px);
 }
 
 .attendance-modal {
   width: min(100%, 488px);
   border-radius: 16px;
-  background: #fff;
+  background: var(--color-surface-card);
   padding: 24px;
-  box-shadow: 0 8px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--color-page-shadow);
 }
 
 .attendance-modal--success {
@@ -733,15 +801,15 @@
 .attendance-modal__icon--alert {
   width: 48px;
   height: 48px;
-  background: rgba(17, 58, 82, 0.16);
-  color: #113a52;
+  background: color-mix(in srgb, var(--color-brand-secondary-main) 16%, transparent);
+  color: var(--color-brand-secondary-main);
 }
 
 .attendance-modal__icon--success {
   width: 64px;
   height: 64px;
-  background: #dcfce7;
-  color: #00a63e;
+  background: var(--color-feedback-success-background);
+  color: var(--color-feedback-success-content);
 }
 
 .attendance-modal__icon--success svg {
@@ -767,7 +835,7 @@
 
 .attendance-modal__copy h2 {
   margin: 0;
-  color: #101828;
+  color: var(--color-content-primary);
   font-size: 18px;
   font-weight: 600;
   line-height: 1.5;
@@ -776,7 +844,7 @@
 
 .attendance-modal__copy p {
   margin: 0;
-  color: #4a5565;
+  color: var(--color-neutral-600);
   font-size: 16px;
   line-height: 1.5;
   letter-spacing: -0.32px;
@@ -809,29 +877,29 @@
 }
 
 .attendance-modal__primary {
-  background: #f1672c;
-  color: #fff;
+  background: var(--color-button-primary-background-enabled);
+  color: var(--color-button-primary-content-enabled);
 }
 
 .attendance-modal__primary:hover,
 .attendance-modal__primary:focus-visible {
-  background: #df5d25;
-  box-shadow: 0 0 0 3px rgba(241, 103, 44, 0.18);
+  background: var(--color-button-primary-background-hover);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary-main) 18%, transparent);
 }
 
 .attendance-modal__secondary {
   background: transparent;
-  color: #f1672c;
+  color: var(--color-brand-primary-main);
 }
 
 .attendance-modal__secondary:hover,
 .attendance-modal__secondary:focus-visible {
-  background: rgba(241, 103, 44, 0.08);
+  background: color-mix(in srgb, var(--color-brand-primary-main) 8%, transparent);
 }
 
 .attendance-history-list-card {
   overflow: hidden;
-  border-top: 1px solid #eaecf0;
+  border-top: 1px solid var(--color-surface-border);
   padding-top: 32px;
 }
 
@@ -843,9 +911,9 @@
 
 .attendance-history-item-card {
   width: 100%;
-  border: 1px solid #eaecf0;
+  border: 1px solid var(--color-surface-border);
   border-radius: 16px;
-  background: #fff;
+  background: var(--color-surface-card);
   text-align: left;
   overflow: hidden;
 }
@@ -867,7 +935,7 @@
 }
 
 .attendance-history-item-card__copy strong {
-  color: #101828;
+  color: var(--color-content-primary);
   font-size: 16px;
   font-weight: 600;
   line-height: 24px;
@@ -878,7 +946,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 14px;
-  color: #4a5565;
+  color: var(--color-neutral-600);
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.35px;
@@ -891,7 +959,7 @@
 }
 
 .attendance-history-item-card__dot {
-  color: #99a1af;
+  color: var(--color-border-tertiary);
 }
 
 .attendance-history-item-card__chevron {
@@ -933,12 +1001,12 @@
 }
 
 .attendance-history-student-row--bordered {
-  border-top: 1px solid #eaecf0;
-  border-bottom: 1px solid #eaecf0;
+  border-top: 1px solid var(--color-surface-border);
+  border-bottom: 1px solid var(--color-surface-border);
 }
 
 .attendance-history-student-row__copy span {
-  color: #101828;
+  color: var(--color-content-primary);
   font-size: 16px;
   font-weight: 500;
   line-height: 24px;
@@ -946,7 +1014,7 @@
 
 .attendance-history-student-row__copy p {
   margin: 0;
-  color: #667085;
+  color: var(--color-neutral-600);
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.28px;
@@ -967,21 +1035,21 @@
 }
 
 .attendance-row-badge--present {
-  background: #dcfce7;
-  color: #008236;
+  background: var(--color-feedback-success-background);
+  color: var(--color-feedback-success-content);
 }
 
 .attendance-row-badge--absent {
-  background: #ffe2e2;
-  color: #c10007;
+  background: var(--color-feedback-error-background);
+  color: var(--color-feedback-error-content);
 }
 
 .attendance-history-empty-state {
-  border: 1px solid #eaecf0;
+  border: 1px solid var(--color-surface-border);
   border-radius: 16px;
-  background: #fff;
+  background: var(--color-surface-card);
   padding: 20px 24px;
-  color: #4a5565;
+  color: var(--color-neutral-600);
   font-size: 14px;
   line-height: 20px;
 }
@@ -995,7 +1063,7 @@
 }
 
 .students-page .page-header__copy p {
-  color: #71717a;
+  color: var(--color-content-tertiary);
   font-size: 18px;
   font-weight: 500;
   line-height: 28px;
@@ -1018,17 +1086,17 @@
 .students-page .search-field,
 .students-page .filter-button {
   min-height: 56px;
-  border-color: rgba(17, 58, 82, 0.08);
+  border-color: var(--color-surface-border-soft);
   border-radius: 12px;
   box-shadow: none;
 }
 
 .students-page .filter-button {
-  color: #113a52;
+  color: var(--color-brand-secondary-main);
 }
 
 .students-page .table-card {
-  border-color: #eaecf0;
+  border-color: var(--color-surface-border);
   border-radius: 16px;
   box-shadow: none;
 }
@@ -1038,12 +1106,12 @@
 }
 
 .students-page .table-card__title h2 {
-  color: #101828;
+  color: var(--color-content-primary);
   font-size: 18px;
 }
 
 .students-page .students-table thead th {
-  background: #f9fafb;
+  background: var(--color-surface-header);
 }
 
 .students-page .students-table tbody td {
@@ -1052,7 +1120,7 @@
 }
 
 .students-page .student-name {
-  color: #101828;
+  color: var(--color-content-primary);
 }
 
 .students-page .status-badge {
@@ -1060,7 +1128,7 @@
 }
 
 .students-page .student-drawer {
-  border-left-color: #eaecf0;
+  border-left-color: var(--color-surface-border);
 }
 
 @media (max-width: 960px) {
@@ -1084,10 +1152,10 @@
     display: flex;
     width: min(320px, calc(100vw - 32px));
     height: 100vh;
-    border-right: 1px solid rgba(17, 58, 82, 0.08);
+    border-right: 1px solid var(--color-surface-border-soft);
     transform: translateX(-100%);
     transition: transform 220ms ease;
-    box-shadow: 24px 0 48px rgba(15, 23, 42, 0.12);
+    box-shadow: 24px 0 48px color-mix(in srgb, var(--color-content-always-dark) 12%, transparent);
   }
 
   .dashboard-sidebar.is-open {
@@ -1104,14 +1172,23 @@
     position: sticky;
     top: 0;
     z-index: 20;
+    display: flex;
     min-height: 72px;
+    align-items: center;
+    gap: 14px;
     padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.96);
+    background: color-mix(in srgb, var(--color-background-primary) 96%, transparent);
     backdrop-filter: blur(10px);
   }
 
   .topbar__quote {
     display: none;
+  }
+
+  .topbar__logo {
+    display: block;
+    width: 104px;
+    height: 30px;
   }
 
   .dashboard-page,
@@ -1196,7 +1273,6 @@
   }
 
   .topbar {
-    align-items: flex-start;
     min-height: 0;
     padding: 12px;
   }
@@ -1207,8 +1283,10 @@
     border-radius: 12px;
   }
 
-  .topbar__quote {
-    display: none;
+  .topbar__logo {
+    display: block;
+    width: 96px;
+    height: 28px;
   }
 
   .dashboard-page__header,
@@ -1259,10 +1337,10 @@
   .attendance-call-summary__item {
     width: calc(50% - 6px);
     min-width: 132px;
-    border: 1px solid #eaecf0;
+    border: 1px solid var(--color-surface-border);
     border-radius: 14px;
     padding: 12px 14px;
-    background: #fff;
+    background: var(--color-surface-card);
   }
 
   .attendance-call-finish-button {
@@ -1292,10 +1370,10 @@
 
   .attendance-call-table__row-shell {
     overflow: hidden;
-    border: 1px solid #eaecf0;
+    border: 1px solid var(--color-surface-border);
     border-radius: 18px;
-    background: #fff;
-    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.06);
+    background: var(--color-surface-card);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--color-content-always-dark) 6%, transparent);
   }
 
   .attendance-call-table__header {
@@ -1330,12 +1408,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    border-top: 1px solid #f2f4f7;
+    border-top: 1px solid var(--color-background-secondary);
     padding-top: 10px;
   }
 
   .attendance-call-table__cell:not(.attendance-call-table__cell--name):not(.attendance-call-table__cell--status):not(.attendance-call-table__cell--note)::before {
-    color: #667085;
+    color: var(--color-neutral-600);
     font-size: 12px;
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
@@ -1353,12 +1431,12 @@
   .attendance-call-table__cell--note {
     justify-content: space-between;
     padding-top: 10px;
-    border-top: 1px solid #f2f4f7;
+    border-top: 1px solid var(--color-background-secondary);
   }
 
   .attendance-call-table__cell--note::before {
     content: "Observacao";
-    color: #667085;
+    color: var(--color-neutral-600);
     font-size: 12px;
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;

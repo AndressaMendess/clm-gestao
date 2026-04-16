@@ -1,4 +1,15 @@
-import { ClipboardList, GraduationCap, Home, LogOut, Music2, Settings, ShieldCheck, Users, X } from "lucide-react";
+import {
+  ClipboardList,
+  GraduationCap,
+  Home,
+  LogOut,
+  Music2,
+  Settings,
+  ShieldCheck,
+  UserRound,
+  Users,
+  X
+} from "lucide-react";
 
 import { assetUrls } from "../data/assets";
 
@@ -25,6 +36,7 @@ const secondaryItems = [
   { label: "Turmas", icon: GraduationCap },
   { label: "Modulos", icon: Music2 },
   { label: "Administradores", icon: ShieldCheck },
+  { label: "Professores", icon: UserRound },
   { label: "Configuracoes", icon: Settings }
 ];
 
