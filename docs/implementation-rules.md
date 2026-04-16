@@ -12,7 +12,7 @@ Garantir que toda nova implementacao:
 - mantenha consistencia com Tailwind CSS e shadcn/ui
 - reutilize os tokens e estilos definidos no projeto
 - venha preparada para futura integracao com banco de dados
-- funcione bem em mobile, tablet e desktop
+- Responsivo para mobile, tablet e desktop seguindo boas práticas
 
 ## Regras Fixas
 
