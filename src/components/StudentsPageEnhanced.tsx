@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 
 import { assetUrls } from "../data/assets";
 import { students } from "../data/students";
@@ -35,12 +35,6 @@ const studentDetailsById: Record<number, StudentRecord["details"]> = {
   9: { rg: "90.123.456-7", birthDate: "03/02/2005", sex: "-", maritalStatus: "-", nationality: "-", fatherName: "-", motherName: "-", attachmentsCount: 4 },
   10: { rg: "01.234.567-8", birthDate: "27/08/2003", sex: "Feminino", maritalStatus: "Solteira", nationality: "Brasileira", fatherName: "-", motherName: "Clara Morrison", attachmentsCount: 1 }
 };
-
-function normalizeStudentText(value: string) {
-  return value
-    .replace(/M(?:ÃƒÂ|Ã)³dulo/g, "M\u00f3dulo")
-    .replace(/Viol(?:ÃƒÂ|Ã)£o/g, "Viol\u00e3o");
-}
 
 function FilterButton({ label }: FilterButtonProps) {
   return (
@@ -213,7 +207,7 @@ export function StudentsPageEnhanced() {
 
   const studentsWithDetails = students.map((student) => ({
     ...student,
-    module: student.module.replace("MÃ³dulo", "Módulo").replace("ViolÃ£o", "Violão"),
+    module: student.module,
     details: studentDetailsById[student.id]
   }));
 

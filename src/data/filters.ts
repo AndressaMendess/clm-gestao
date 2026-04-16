@@ -1,8 +1,8 @@
-export const moduleOptions = ["Todos", "Modulo I", "Modulo II", "Modulo III"] as const;
+﻿export const moduleOptions = ["Todos", "Módulo I", "Módulo II", "Módulo III"] as const;
 
 export const classOptionsByModule = {
-  "Modulo I": ["Classe 1", "Classe 2"],
-  "Modulo II": [
+  "Módulo I": ["Classe 1", "Classe 2"],
+  "Módulo II": [
     "Canto coral",
     "Violoncelo",
     "Violino",
@@ -11,12 +11,12 @@ export const classOptionsByModule = {
     "Saxofone",
     "Teclado",
     "Clarinete",
-    "Violao",
+    "Violão",
     "Guitarra",
     "Contrabaixo",
     "Flauta"
   ],
-  "Modulo III": [
+  "Módulo III": [
     "Canto coral",
     "Violoncelo",
     "Violino",
@@ -25,7 +25,7 @@ export const classOptionsByModule = {
     "Saxofone",
     "Teclado",
     "Clarinete",
-    "Violao",
+    "Violão",
     "Guitarra",
     "Contrabaixo",
     "Flauta"
@@ -36,20 +36,19 @@ export const statusOptions = ["Todos", "Ativo", "Inativo", "Trancamento"] as con
 
 export type ModuleFilter = (typeof moduleOptions)[number];
 export type StatusFilter = (typeof statusOptions)[number];
-export type ClassFilter = "Todas" | (typeof classOptionsByModule)["Modulo I"][number] | (typeof classOptionsByModule)["Modulo II"][number];
+export type ClassFilter =
+  | "Todas"
+  | (typeof classOptionsByModule)["Módulo I"][number]
+  | (typeof classOptionsByModule)["Módulo II"][number];
 
 export function getClassOptions(moduleFilter: ModuleFilter) {
-  if (moduleFilter === "Modulo I") {
-    return ["Todas", ...classOptionsByModule["Modulo I"]];
+  if (moduleFilter === "Módulo I") {
+    return ["Todas", ...classOptionsByModule["Módulo I"]];
   }
 
-  if (moduleFilter === "Modulo II" || moduleFilter === "Modulo III") {
+  if (moduleFilter === "Módulo II" || moduleFilter === "Módulo III") {
     return ["Todas", ...classOptionsByModule[moduleFilter]];
   }
 
-  return [
-    "Todas",
-    ...classOptionsByModule["Modulo I"],
-    ...classOptionsByModule["Modulo II"]
-  ];
+  return ["Todas", ...classOptionsByModule["Módulo I"], ...classOptionsByModule["Módulo II"]];
 }

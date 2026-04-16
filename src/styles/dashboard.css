@@ -1985,7 +1985,7 @@
   }
 
   .attendance-call-table__row .attendance-call-table__cell:nth-child(3)::before {
-    content: "Modulo";
+    content: "Módulo";
   }
 
   .attendance-call-table__row .attendance-call-table__cell:nth-child(4)::before {

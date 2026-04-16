@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, Check, CheckCircle2, Clock3, MessageCircleMore } from "lucide-react";
+﻿import { AlertCircle, ArrowLeft, Check, CheckCircle2, Clock3, MessageCircleMore } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -62,7 +62,7 @@ export function AttendanceCallPage({ classId, onBack, onFinish }: AttendanceCall
           </button>
         </section>
 
-        <div className="attendance-history-empty-state">Turma nao encontrada para iniciar a chamada.</div>
+        <div className="attendance-history-empty-state">Turma não encontrada para iniciar a chamada.</div>
       </main>
     );
   }
@@ -120,8 +120,8 @@ export function AttendanceCallPage({ classId, onBack, onFinish }: AttendanceCall
 
   const successMessage =
     summary.presentCount === 1
-      ? "A presenca foi registrada com sucesso para 1 aluno."
-      : `A presenca foi registrada com sucesso para ${summary.presentCount} alunos.`;
+      ? "A presença foi registrada com sucesso para 1 aluno."
+      : `A presença foi registrada com sucesso para ${summary.presentCount} alunos.`;
 
   return (
     <main className="students-page dashboard-page dashboard-page--attendance-call">
@@ -149,7 +149,7 @@ export function AttendanceCallPage({ classId, onBack, onFinish }: AttendanceCall
         <div className="attendance-call-summary__item attendance-call-summary__item--pending">
           <span className="attendance-call-summary__dot" />
           <strong>{summary.pendingCount}</strong>
-          <span>nao registrados</span>
+          <span>não registrados</span>
         </div>
       </section>
 
@@ -162,9 +162,9 @@ export function AttendanceCallPage({ classId, onBack, onFinish }: AttendanceCall
           <div className="attendance-call-table__header attendance-call-table__row">
             <span>Status</span>
             <span>Nome</span>
-            <span>Modulo</span>
-            <span>Horario</span>
-            <span>Observacao</span>
+            <span>Módulo</span>
+            <span>Horário</span>
+            <span>Observação</span>
           </div>
 
           {session.students.map((student) => {
@@ -179,7 +179,7 @@ export function AttendanceCallPage({ classId, onBack, onFinish }: AttendanceCall
                       className={`attendance-status-toggle ${isPresent ? "is-checked" : ""}`}
                       type="button"
                       aria-pressed={isPresent}
-                      aria-label={isPresent ? `Desmarcar presenca de ${student.name}` : `Marcar presenca de ${student.name}`}
+                      aria-label={isPresent ? `Desmarcar presença de ${student.name}` : `Marcar presença de ${student.name}`}
                       onClick={() => handleTogglePresence(student.id)}
                     >
                       <Check aria-hidden="true" />
@@ -217,7 +217,7 @@ export function AttendanceCallPage({ classId, onBack, onFinish }: AttendanceCall
                       className={`attendance-note-button ${student.note ? "has-note" : ""}`}
                       type="button"
                       aria-expanded={isEditing}
-                      aria-label={student.note ? `Editar observacao de ${student.name}` : `Adicionar observacao para ${student.name}`}
+                      aria-label={student.note ? `Editar observação de ${student.name}` : `Adicionar observação para ${student.name}`}
                       onClick={() => setEditingNoteId((current) => (current === student.id ? null : student.id))}
                     >
                       <MessageCircleMore aria-hidden="true" />
@@ -228,12 +228,12 @@ export function AttendanceCallPage({ classId, onBack, onFinish }: AttendanceCall
                 {isEditing ? (
                   <div className="attendance-note-editor">
                     <label className="sr-only" htmlFor={`attendance-note-${student.id}`}>
-                      Observacao para {student.name}
+                      Observação para {student.name}
                     </label>
                     <textarea
                       id={`attendance-note-${student.id}`}
                       className="attendance-note-editor__field"
-                      placeholder="Adicionar observacao"
+                      placeholder="Adicionar observação"
                       value={student.note ?? ""}
                       onChange={(event) => handleNoteChange(student.id, event.target.value)}
                     />
@@ -270,7 +270,7 @@ export function AttendanceCallPage({ classId, onBack, onFinish }: AttendanceCall
               <div className="attendance-modal__copy attendance-modal__copy--left">
                 <h2 id="attendance-confirm-title">Finalizar Chamada</h2>
                 <p id="attendance-confirm-description">
-                  Todos os alunos foram registrados. Confirma a finalizacao da chamada?
+                  Todos os alunos foram registrados. Confirma a finalização da chamada?
                 </p>
               </div>
             </div>
@@ -318,3 +318,4 @@ export function AttendanceCallPage({ classId, onBack, onFinish }: AttendanceCall
     </main>
   );
 }
+

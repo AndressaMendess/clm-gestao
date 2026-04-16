@@ -81,7 +81,7 @@ export function OverviewPage({
     },
     {
       id: "attendance",
-      title: "Presencas",
+      title: "Presenças",
       description: "Consulte o hist\u00F3rico de registros de presen\u00E7a.",
       icon: ClipboardList,
       tone: "green",
