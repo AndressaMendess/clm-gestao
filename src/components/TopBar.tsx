@@ -9,7 +9,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle: () => void }) {
         <Menu aria-hidden="true" />
       </button>
       <p className="topbar__quote">
-        "A musica e a linguagem universal da humanidade." - Henry Wadsworth Longfellow
+        {"\"A m\u00FAsica \u00E9 a linguagem universal da humanidade.\" \u2014 Henry Wadsworth Longfellow"}
       </p>
       <img className="topbar__logo" src={assetUrls.logo} alt="Escola de Musica" />
     </header>

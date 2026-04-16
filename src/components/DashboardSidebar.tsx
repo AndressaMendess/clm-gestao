@@ -13,7 +13,7 @@ import {
 
 import { assetUrls } from "../data/assets";
 
-export type DashboardPage = "students" | "attendance";
+export type DashboardPage = "overview" | "students" | "attendance";
 
 type DashboardSidebarProps = {
   activePage: DashboardPage;
@@ -23,21 +23,21 @@ type DashboardSidebarProps = {
 };
 
 const primaryItems: Array<{
-  id: DashboardPage | "overview";
+  id: DashboardPage;
   label: string;
   icon: typeof Home;
 }> = [
-  { id: "overview", label: "Visao Geral", icon: Home },
+  { id: "overview", label: "Vis\u00E3o Geral", icon: Home },
   { id: "students", label: "Alunos", icon: Users },
-  { id: "attendance", label: "Presencas", icon: ClipboardList }
+  { id: "attendance", label: "Presen\u00E7as", icon: ClipboardList }
 ];
 
 const secondaryItems = [
   { label: "Turmas", icon: GraduationCap },
-  { label: "Modulos", icon: Music2 },
+  { label: "M\u00F3dulos", icon: Music2 },
   { label: "Administradores", icon: ShieldCheck },
   { label: "Professores", icon: UserRound },
-  { label: "Configuracoes", icon: Settings }
+  { label: "Configura\u00E7\u00F5es", icon: Settings }
 ];
 
 export function DashboardSidebar({ activePage, isOpen = false, onClose, onNavigate }: DashboardSidebarProps) {
@@ -64,9 +64,7 @@ export function DashboardSidebar({ activePage, isOpen = false, onClose, onNaviga
                   className={`nav-item ${isActive ? "nav-item--active" : ""}`}
                   type="button"
                   onClick={() => {
-                    if (item.id === "students" || item.id === "attendance") {
-                      onNavigate(item.id);
-                    }
+                    onNavigate(item.id);
                   }}
                 >
                   <Icon className="nav-item__icon" aria-hidden="true" />
