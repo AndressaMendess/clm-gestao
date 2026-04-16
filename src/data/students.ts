@@ -1,6 +1,6 @@
 import { assetUrls } from "./assets";
 
-export type StudentStatus = "Ativo" | "Inativo";
+export type StudentStatus = "Ativo" | "Inativo" | "Trancamento";
 
 export type Student = {
   id: number;
@@ -34,7 +34,7 @@ export const students: Student[] = [
     name: "Bruno Henrique Costa",
     phone: "(11) 97654-3210",
     email: "bruno.costa@email.com",
-    status: "Ativo",
+    status: "Inativo",
     module: "Módulo I",
     moduleTone: "violet",
     className: "Classe 1",

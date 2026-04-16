@@ -1,11 +1,13 @@
-/**
- * Barra superior com a citação principal do dashboard.
- */
-export function TopBar() {
+import { Menu } from "lucide-react";
+
+export function TopBar({ onMenuToggle }: { onMenuToggle: () => void }) {
   return (
     <header className="topbar">
+      <button className="topbar__menu-button" type="button" aria-label="Abrir menu" onClick={onMenuToggle}>
+        <Menu aria-hidden="true" />
+      </button>
       <p className="topbar__quote">
-        "A música é a linguagem universal da humanidade." — Henry Wadsworth Longfellow
+        "A musica e a linguagem universal da humanidade." - Henry Wadsworth Longfellow
       </p>
     </header>
   );

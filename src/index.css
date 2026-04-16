@@ -2,21 +2,22 @@
 @import "tw-animate-css";
 
 :root {
-  --background: #fafafb;
-  --foreground: #18181b;
-  --primary: #f1672c;
-  --primary-foreground: #ffffff;
-  --secondary: #f9fafb;
-  --secondary-foreground: #344054;
-  --border: #eaecf0;
-  --input: #d0d5dd;
-  --ring: #f1672c;
-  --muted: #f9fafb;
-  --muted-foreground: #667085;
+  --background: var(--color-background-primary);
+  --foreground: var(--color-content-primary);
+  --primary: var(--color-brand-primary-main);
+  --primary-foreground: var(--color-content-always-light);
+  --secondary: var(--color-background-secondary);
+  --secondary-foreground: var(--color-content-secondary);
+  --border: var(--color-border-primary);
+  --input: var(--color-border-secondary);
+  --ring: var(--color-brand-primary-soft);
+  --muted: var(--color-background-secondary);
+  --muted-foreground: var(--color-content-tertiary);
   --radius: 10px;
 }
 
 @theme inline {
+  --font-sans: var(--font-family-base);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
