@@ -1,18 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, Plus, Search, Trash2 } from "lucide-react";
 
 import { Badge } from "@/src/components/ui/badge";
-import { Button } from "@/src/components/ui/button";
 import { Checkbox } from "@/src/components/ui/checkbox";
-import { Input } from "@/src/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
-import { assetUrls } from "../data/assets";
+import { getClassOptions, statusOptions, type ClassFilter, type ModuleFilter, type StatusFilter } from "../data/filters";
 import { students } from "../data/students";
 
 type FilterButtonProps = {
   label: string;
 };
 
-type StudentStatus = "Ativo" | "Inativo";
+type StudentStatus = "Ativo" | "Inativo" | "Trancamento";
 type StudentTone = "violet" | "orange" | "blue" | "pink";
 type DrawerTab = "personal" | "contact" | "address" | "attachments";
 
@@ -301,10 +300,10 @@ function normalizeStudentText(value: string) {
 
 function FilterButton({ label }: FilterButtonProps) {
   return (
-    <Button className="filter-button" variant="outline">
+    <button className="filter-button" type="button">
       <span>{label}</span>
-      <img src={assetUrls.icons.caretDown} alt="" aria-hidden="true" />
-    </Button>
+      <ChevronDown aria-hidden="true" />
+    </button>
   );
 }
 
@@ -672,7 +671,7 @@ function StudentDrawer({
           </button>
 
           <button className="student-drawer__delete" type="button" aria-label={`Excluir ${student.name}`}>
-            <img src={assetUrls.icons.trash} alt="" aria-hidden="true" />
+            <Trash2 aria-hidden="true" />
           </button>
         </div>
         <Tabs
@@ -705,6 +704,10 @@ function StudentDrawer({
 }
 
 export function StudentsPageDrawer() {
+  const [query, setQuery] = useState("");
+  const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("Todos");
+  const [classFilter, setClassFilter] = useState<ClassFilter>("Todas");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
   const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
   const [activeTab, setActiveTab] = useState<DrawerTab>("personal");
   const [isDrawerClosing, setIsDrawerClosing] = useState(false);
@@ -733,12 +736,108 @@ export function StudentsPageDrawer() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedStudent]);
 
-  const studentsWithDetails = students.map((student) => ({
-    ...student,
-    module: normalizeStudentText(student.module),
-    className: normalizeStudentText(student.className),
-    details: studentDetailsById[student.id]
-  }));
+  const classOptions = useMemo(() => getClassOptions(moduleFilter), [moduleFilter]);
+
+  const studentsWithDetails = useMemo(
+    () =>
+      students.map((student) => {
+        const normalizedModule = normalizeStudentText(student.module)
+          .replace("Módulo", "Modulo")
+          .replace("MÃ³dulo", "Modulo");
+        const normalizedClassName = normalizeStudentText(student.className)
+          .replace("Teoria Musical", "Canto coral")
+          .replace("Solfejo", "Violao");
+        const normalizedStatus =
+          student.id === 2 ? "Inativo" : student.id === 5 ? "Trancamento" : student.status;
+
+        return {
+          ...student,
+          status: normalizedStatus,
+          module: normalizedModule,
+          className: normalizedClassName,
+          details: studentDetailsById[student.id]
+        };
+      }),
+    []
+  );
+
+  const filteredStudents = useMemo(
+    () =>
+      studentsWithDetails.filter((student) => {
+        const search = query.trim().toLowerCase();
+        const matchesQuery =
+          search === "" ||
+          [student.name, student.phone, student.email].some((value) => value.toLowerCase().includes(search));
+        const matchesModule = moduleFilter === "Todos" || student.module === moduleFilter;
+        const matchesClass = classFilter === "Todas" || student.className === classFilter;
+        const matchesStatus = statusFilter === "Todos" || student.status === statusFilter;
+
+        return matchesQuery && matchesModule && matchesClass && matchesStatus;
+      }),
+    [classFilter, moduleFilter, query, statusFilter, studentsWithDetails]
+  );
+
+  const FilterButton = ({ label }: FilterButtonProps) => {
+    if (label.includes("Status")) {
+      return (
+        <label className="filter-button">
+          <select
+            aria-label="Filtrar por status"
+            className="filter-button__select"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+          >
+            {statusOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === "Todos" ? "Filtrar por Status" : option}
+              </option>
+            ))}
+          </select>
+          <ChevronDown aria-hidden="true" />
+        </label>
+      );
+    }
+
+    if (label.includes("Turmas")) {
+      return (
+        <label className="filter-button">
+          <select
+            aria-label="Filtrar por turmas"
+            className="filter-button__select"
+            value={classFilter}
+            onChange={(event) => setClassFilter(event.target.value as ClassFilter)}
+          >
+            {classOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === "Todas" ? "Filtrar por Turmas" : option}
+              </option>
+            ))}
+          </select>
+          <ChevronDown aria-hidden="true" />
+        </label>
+      );
+    }
+
+    return (
+      <label className="filter-button">
+        <select
+          aria-label="Filtrar por modulos"
+          className="filter-button__select"
+          value={moduleFilter}
+          onChange={(event) => {
+            setModuleFilter(event.target.value as ModuleFilter);
+            setClassFilter("Todas");
+          }}
+        >
+          <option value="Todos">Filtrar por Modulos</option>
+          <option value="Modulo I">Modulo I</option>
+          <option value="Modulo II">Modulo II</option>
+          <option value="Modulo III">Modulo III</option>
+        </select>
+        <ChevronDown aria-hidden="true" />
+      </label>
+    );
+  };
 
   return (
     <>
@@ -749,20 +848,22 @@ export function StudentsPageDrawer() {
             <p>Gerencie o cadastro completo de alunos.</p>
           </div>
 
-          <Button className="primary-button">
-            <img src={assetUrls.icons.plus} alt="" aria-hidden="true" />
+          <button className="primary-button" type="button">
+            <Plus aria-hidden="true" />
             <span>Adicionar aluno</span>
-          </Button>
+          </button>
         </section>
 
         <section className="filters" aria-label="Busca e filtros">
           <label className="search-field">
-            <img src={assetUrls.icons.search} alt="" aria-hidden="true" />
-            <Input
+            <Search aria-hidden="true" />
+            <input
               type="text"
               className="search-field__input"
               placeholder="Buscar por nome, telefone ou email..."
               aria-label="Buscar por nome, telefone ou email"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
             />
           </label>
 
@@ -778,7 +879,7 @@ export function StudentsPageDrawer() {
             <div className="table-card__title">
               <h2 id="students-title">Alunos</h2>
               <Badge className="count-badge" variant="violet">
-                {studentsWithDetails.length} alunos
+                {filteredStudents.length} alunos
               </Badge>
             </div>
           </header>
@@ -796,7 +897,7 @@ export function StudentsPageDrawer() {
                   <th>
                     <div className="header-sort">
                       <span>Status</span>
-                      <img src={assetUrls.icons.arrowDown} alt="" aria-hidden="true" />
+                      <ChevronDown aria-hidden="true" />
                     </div>
                   </th>
                   <th>Contato</th>
@@ -806,7 +907,7 @@ export function StudentsPageDrawer() {
               </thead>
 
               <tbody>
-                {studentsWithDetails.map((student) => (
+                {filteredStudents.map((student) => (
                   <tr key={student.id}>
                     <td>
                       <div className="student-cell">

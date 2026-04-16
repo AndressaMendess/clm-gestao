@@ -7,7 +7,7 @@ type FilterButtonProps = {
   label: string;
 };
 
-type StudentStatus = "Ativo" | "Inativo";
+type StudentStatus = "Ativo" | "Inativo" | "Trancamento";
 type StudentTone = "violet" | "orange" | "blue" | "pink";
 
 type StudentRecord = (typeof students)[number] & {

@@ -15,7 +15,7 @@ function FilterButton({ label }: FilterButtonProps) {
 }
 
 type StatusBadgeProps = {
-  status: "Ativo" | "Inativo";
+  status: "Ativo" | "Inativo" | "Trancamento";
 };
 
 function StatusBadge({ status }: StatusBadgeProps) {
