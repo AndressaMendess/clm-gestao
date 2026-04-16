@@ -1,21 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Plus, Search, Trash2 } from "lucide-react";
 
 import { Badge } from "@/src/components/ui/badge";
 import { Checkbox } from "@/src/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
+import { attendanceHistory, type AttendanceStatus } from "../data/attendance";
 import { getClassOptions, statusOptions, type ClassFilter, type ModuleFilter, type StatusFilter } from "../data/filters";
 import { students } from "../data/students";
+import { StudentAttendanceHistoryView, type StudentAttendanceHistoryRecordView } from "./StudentAttendanceHistoryView";
 
 type FilterButtonProps = {
   label: string;
 };
+type StudentSortKey = "name" | "status" | "contact" | "module" | "className";
 
 type StudentStatus = "Ativo" | "Inativo" | "Trancamento";
 type StudentTone = "violet" | "orange" | "blue" | "pink";
-type DrawerTab = "personal" | "contact" | "address" | "attachments";
+type DrawerTab = "personal" | "contact" | "address" | "attachments" | "frequency";
+type FrequencyRecord = StudentAttendanceHistoryRecordView;
 
 type StudentRecord = (typeof students)[number] & {
+  attendance: FrequencyRecord[];
   details: {
     rg: string;
     birthDate: string;
@@ -194,7 +199,7 @@ const studentDetailsById: Record<number, StudentRecord["details"]> = {
     maritalStatus: "-",
     nationality: "Brasileira",
     fatherName: "-",
-    motherName: "Patrícia Cano",
+    motherName: "PatrÃ­cia Cano",
     attachmentsCount: 2,
     contact: {
       phone: "(11) 98765-2211",
@@ -217,8 +222,8 @@ const studentDetailsById: Record<number, StudentRecord["details"]> = {
     sex: "Masculino",
     maritalStatus: "Solteiro",
     nationality: "Brasileira",
-    fatherName: "João Diggs",
-    motherName: "Célia Diggs",
+    fatherName: "JoÃ£o Diggs",
+    motherName: "CÃ©lia Diggs",
     attachmentsCount: 1,
     contact: {
       phone: "(11) 97654-9988",
@@ -289,13 +294,68 @@ const drawerTabs: Array<{ id: DrawerTab; label: string }> = [
   { id: "personal", label: "Dados pessoais" },
   { id: "contact", label: "Contato" },
   { id: "address", label: "Endereço" },
-  { id: "attachments", label: "Anexos" }
+  { id: "attachments", label: "Anexos" },
+  { id: "frequency", label: "Frequência" }
 ];
 
+const frequencyFallbackByStudentId: Partial<Record<number, FrequencyRecord[]>> = {
+  1: [
+    {
+      id: "1-2024-01-24",
+      date: "24/01/2024",
+      moduleLabel: "Módulo I",
+      moduleTone: "violet",
+      className: "Classe 1",
+      classTone: "blue",
+      status: "Presente"
+    }
+  ]
+};
+
+function parseBrazilianDate(value: string) {
+  const [day, month, year] = value.split("/").map(Number);
+
+  return new Date(year, month - 1, day).getTime();
+}
+
+function getStudentFrequencyRecords(
+  studentId: number,
+  moduleLabel: string,
+  moduleTone: FrequencyRecord["moduleTone"],
+  className: string,
+  classTone: FrequencyRecord["classTone"]
+) {
+  const fallback = frequencyFallbackByStudentId[studentId];
+
+  if (fallback) {
+    return fallback;
+  }
+
+  return attendanceHistory
+    .flatMap((entry) =>
+      entry.students
+        .filter((student) => student.id === studentId)
+        .map((student) => ({
+          id: `${entry.id}-${student.id}`,
+          date: entry.date,
+          moduleLabel,
+          moduleTone,
+          className,
+          classTone,
+          status: student.status,
+          note: student.note
+        }))
+    )
+    .sort((left, right) => parseBrazilianDate(right.date) - parseBrazilianDate(left.date));
+}
+
+function compareStudentStatus(left: StudentStatus, right: StudentStatus) {
+  const order = { Ativo: 0, Inativo: 1, Trancamento: 2 };
+  return order[left] - order[right];
+}
+
 function normalizeStudentText(value: string) {
-  return value
-    .replace("Módulo", "Módulo")
-    .replace("ViolÃ£o", "Violão");
+  return value;
 }
 
 function FilterButton({ label }: FilterButtonProps) {
@@ -500,6 +560,127 @@ function AttachmentActionButton({
   );
 }
 
+function FrequencyStatusBadge({ status }: { status: AttendanceStatus }) {
+  const tone = status === "Presente" ? "success" : "error";
+
+  return (
+    <span className={`frequency-status-badge frequency-status-badge--${tone}`}>
+      <FrequencyIcon name={tone === "success" ? "check-circle" : "alert-circle"} />
+      <span>{status}</span>
+    </span>
+  );
+}
+
+function FrequencyIcon({ name }: { name: "calendar" | "check-circle" | "alert-circle" | "chevron-down" }) {
+  const sharedProps = {
+    viewBox: "0 0 20 20",
+    fill: "none",
+    "aria-hidden": true as const
+  };
+
+  switch (name) {
+    case "calendar":
+      return (
+        <svg {...sharedProps}>
+          <path
+            d="M6.667 1.667v3.333M13.333 1.667v3.333M2.917 8.333h14.166M4.583 3.333h10.834a1.667 1.667 0 0 1 1.666 1.667v10.833a1.667 1.667 0 0 1-1.666 1.667H4.583a1.667 1.667 0 0 1-1.666-1.667V5A1.667 1.667 0 0 1 4.583 3.333Z"
+            stroke="currentColor"
+            strokeWidth="1.67"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "check-circle":
+      return (
+        <svg {...sharedProps}>
+          <path
+            d="M18.333 9.233v.767A8.333 8.333 0 1 1 13.392 2.39"
+            stroke="currentColor"
+            strokeWidth="1.67"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="m18.333 3.333-8.333 8.342-2.5-2.5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "alert-circle":
+      return (
+        <svg {...sharedProps}>
+          <path
+            d="M10 6.667V10m0 3.333h.008M18.333 10A8.333 8.333 0 1 1 1.667 10a8.333 8.333 0 0 1 16.666 0Z"
+            stroke="currentColor"
+            strokeWidth="1.67"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "chevron-down":
+      return (
+        <svg {...sharedProps}>
+          <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+function FrequencyTabContent({
+  student,
+  onOpenFullHistory
+}: {
+  student: StudentRecord;
+  onOpenFullHistory: () => void;
+}) {
+  const recentRecords = student.attendance.slice(0, 1);
+
+  return (
+    <section className="student-card student-card--frequency">
+      <div className="frequency-card__header">
+        <h3 className="student-card__title">Histórico Recente</h3>
+        <p className="frequency-card__description">Últimas {student.attendance.length} ocorrências de presença</p>
+      </div>
+
+      {recentRecords.length > 0 ? (
+        <div className="frequency-card__list">
+          {recentRecords.map((record) => (
+            <article key={record.id} className="frequency-entry">
+              <div className="frequency-entry__meta">
+                <div className="frequency-entry__date-row">
+                  <span className="frequency-entry__icon" aria-hidden="true">
+                    <FrequencyIcon name="calendar" />
+                  </span>
+                  <strong>{record.date}</strong>
+                </div>
+                <span className="frequency-entry__class">{record.className}</span>
+              </div>
+
+              <div className="frequency-entry__status">
+                <FrequencyStatusBadge status={record.status} />
+                <button className="frequency-entry__toggle" type="button" aria-label={`Ver detalhes da presença de ${record.date}`}>
+                  <FrequencyIcon name="chevron-down" />
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="frequency-empty-state">
+          <p>Nenhuma ocorrência de frequência registrada.</p>
+        </div>
+      )}
+
+      <div className="frequency-card__footer">
+        <button className="frequency-card__button" type="button" onClick={onOpenFullHistory}>
+          Ver histórico completo ({student.attendance.length} {student.attendance.length === 1 ? "registro" : "registros"})
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function AttachmentFileItem() {
   return (
     <div className="attachment-file">
@@ -507,7 +688,7 @@ function AttachmentFileItem() {
         <AttachmentIcon name="file" className="attachment-symbol attachment-symbol--file-item" />
         <div className="attachment-file__text">
           <strong>RG_Ana_Carolina_Souza.pdf</strong>
-          <span>1.0 KB • 18/01/2024</span>
+          <span>1.0 KB Ã¢â‚¬Â¢ 18/01/2024</span>
         </div>
       </div>
 
@@ -535,7 +716,15 @@ function EmptyAttachmentState() {
   );
 }
 
-function DrawerTabContent({ student, activeTab }: { student: StudentRecord; activeTab: DrawerTab }) {
+function DrawerTabContent({
+  student,
+  activeTab,
+  onOpenFullHistory
+}: {
+  student: StudentRecord;
+  activeTab: DrawerTab;
+  onOpenFullHistory: () => void;
+}) {
   if (activeTab === "contact") {
     return (
       <section className="student-card student-card--contact">
@@ -574,6 +763,10 @@ function DrawerTabContent({ student, activeTab }: { student: StudentRecord; acti
         </section>
       </>
     );
+  }
+
+  if (activeTab === "frequency") {
+    return <FrequencyTabContent student={student} onOpenFullHistory={onOpenFullHistory} />;
   }
 
   return (
@@ -621,12 +814,14 @@ function StudentDrawer({
   student,
   activeTab,
   onTabChange,
-  onClose
+  onClose,
+  onOpenFullHistory
 }: {
   student: StudentRecord;
   activeTab: DrawerTab;
   onTabChange: (tab: DrawerTab) => void;
   onClose: () => void;
+  onOpenFullHistory: () => void;
 }) {
   const initials =
     student.initials ??
@@ -693,7 +888,7 @@ function StudentDrawer({
           <div className="student-drawer__content">
             {drawerTabs.map((tab) => (
               <TabsContent key={tab.id} value={tab.id}>
-                <DrawerTabContent student={student} activeTab={tab.id} />
+                <DrawerTabContent student={student} activeTab={tab.id} onOpenFullHistory={onOpenFullHistory} />
               </TabsContent>
             ))}
           </div>
@@ -704,12 +899,17 @@ function StudentDrawer({
 }
 
 export function StudentsPageDrawer() {
+  const studentsPerPage = 8;
   const [query, setQuery] = useState("");
   const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("Todos");
   const [classFilter, setClassFilter] = useState<ClassFilter>("Todas");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
   const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
+  const [historyStudent, setHistoryStudent] = useState<StudentRecord | null>(null);
   const [activeTab, setActiveTab] = useState<DrawerTab>("personal");
+  const [studentSortKey, setStudentSortKey] = useState<StudentSortKey>("name");
+  const [studentSortDirection, setStudentSortDirection] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isDrawerClosing, setIsDrawerClosing] = useState(false);
 
   const closeDrawer = () => {
@@ -742,11 +942,11 @@ export function StudentsPageDrawer() {
     () =>
       students.map((student) => {
         const normalizedModule = normalizeStudentText(student.module)
-          .replace("Módulo", "Modulo")
-          .replace("MÃ³dulo", "Modulo");
+          .replace("Módulo", "Módulo")
+          .replace("Módulo", "Módulo");
         const normalizedClassName = normalizeStudentText(student.className)
           .replace("Teoria Musical", "Canto coral")
-          .replace("Solfejo", "Violao");
+          .replace("Solfejo", "Violão");
         const normalizedStatus =
           student.id === 2 ? "Inativo" : student.id === 5 ? "Trancamento" : student.status;
 
@@ -755,6 +955,13 @@ export function StudentsPageDrawer() {
           status: normalizedStatus,
           module: normalizedModule,
           className: normalizedClassName,
+          attendance: getStudentFrequencyRecords(
+            student.id,
+            normalizedModule,
+            student.moduleTone,
+            normalizedClassName,
+            student.classTone
+          ),
           details: studentDetailsById[student.id]
         };
       }),
@@ -762,8 +969,8 @@ export function StudentsPageDrawer() {
   );
 
   const filteredStudents = useMemo(
-    () =>
-      studentsWithDetails.filter((student) => {
+    () => {
+      const visibleStudents = studentsWithDetails.filter((student) => {
         const search = query.trim().toLowerCase();
         const matchesQuery =
           search === "" ||
@@ -773,9 +980,62 @@ export function StudentsPageDrawer() {
         const matchesStatus = statusFilter === "Todos" || student.status === statusFilter;
 
         return matchesQuery && matchesModule && matchesClass && matchesStatus;
-      }),
-    [classFilter, moduleFilter, query, statusFilter, studentsWithDetails]
+      });
+
+      return [...visibleStudents].sort((left, right) => {
+        let comparison = 0;
+
+        if (studentSortKey === "name") {
+          comparison = left.name.localeCompare(right.name, "pt-BR");
+        }
+
+        if (studentSortKey === "status") {
+          comparison = compareStudentStatus(left.status, right.status);
+        }
+
+        if (studentSortKey === "contact") {
+          comparison = left.email.localeCompare(right.email, "pt-BR");
+        }
+
+        if (studentSortKey === "module") {
+          comparison = left.module.localeCompare(right.module, "pt-BR", { numeric: true });
+        }
+
+        if (studentSortKey === "className") {
+          comparison = left.className.localeCompare(right.className, "pt-BR", { numeric: true });
+        }
+
+        return studentSortDirection === "asc" ? comparison : comparison * -1;
+      });
+    },
+    [classFilter, moduleFilter, query, statusFilter, studentSortDirection, studentSortKey, studentsWithDetails]
   );
+
+  function handleStudentSort(nextKey: StudentSortKey) {
+    if (nextKey === studentSortKey) {
+      setStudentSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setStudentSortKey(nextKey);
+    setStudentSortDirection(nextKey === "status" ? "asc" : "asc");
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / studentsPerPage));
+  const paginatedStudents = useMemo(
+    () => filteredStudents.slice((currentPage - 1) * studentsPerPage, currentPage * studentsPerPage),
+    [currentPage, filteredStudents]
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [classFilter, moduleFilter, query, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const FilterButton = ({ label }: FilterButtonProps) => {
     if (label.includes("Status")) {
@@ -821,7 +1081,7 @@ export function StudentsPageDrawer() {
     return (
       <label className="filter-button">
         <select
-          aria-label="Filtrar por modulos"
+          aria-label="Filtrar por módulos"
           className="filter-button__select"
           value={moduleFilter}
           onChange={(event) => {
@@ -829,10 +1089,10 @@ export function StudentsPageDrawer() {
             setClassFilter("Todas");
           }}
         >
-          <option value="Todos">Filtrar por Modulos</option>
-          <option value="Modulo I">Modulo I</option>
-          <option value="Modulo II">Modulo II</option>
-          <option value="Modulo III">Modulo III</option>
+          <option value="Todos">Filtrar por Módulos</option>
+          <option value="Módulo I">Módulo I</option>
+          <option value="Módulo II">Módulo II</option>
+          <option value="Módulo III">Módulo III</option>
         </select>
         <ChevronDown aria-hidden="true" />
       </label>
@@ -841,6 +1101,18 @@ export function StudentsPageDrawer() {
 
   return (
     <>
+      {historyStudent ? (
+        <StudentAttendanceHistoryView
+          studentName={historyStudent.name}
+          records={historyStudent.attendance}
+          onBack={() => {
+            setHistoryStudent(null);
+            setSelectedStudent(historyStudent);
+            setActiveTab("frequency");
+          }}
+        />
+      ) : (
+        <>
       <main className={`students-page ${selectedStudent ? "students-page--drawer-open" : ""}`}>
         <section className="page-header">
           <div className="page-header__copy">
@@ -884,30 +1156,81 @@ export function StudentsPageDrawer() {
             </div>
           </header>
 
-          <div className="table-scroll">
+          <div className="table-scroll students-table-shell">
             <table className="students-table">
               <thead>
                 <tr>
                   <th>
                     <div className="header-with-checkbox">
                       <Checkbox aria-label="Selecionar todos" />
-                      <span>Nome</span>
+                      <button
+                        className={`table-header-button ${studentSortKey === "name" ? "is-active" : ""}`}
+                        type="button"
+                        onClick={() => handleStudentSort("name")}
+                      >
+                        <span>Nome</span>
+                        <ChevronDown
+                          className={`table-header-button__icon ${
+                            studentSortKey === "name" && studentSortDirection === "asc" ? "is-ascending" : ""
+                          }`}
+                          aria-hidden="true"
+                        />
+                      </button>
                     </div>
                   </th>
                   <th>
-                    <div className="header-sort">
+                    <button
+                      className={`table-header-button ${studentSortKey === "status" ? "is-active" : ""}`}
+                      type="button"
+                      onClick={() => handleStudentSort("status")}
+                    >
                       <span>Status</span>
-                      <ChevronDown aria-hidden="true" />
-                    </div>
+                      <ChevronDown
+                        className={`table-header-button__icon ${
+                          studentSortKey === "status" && studentSortDirection === "asc" ? "is-ascending" : ""
+                        }`}
+                        aria-hidden="true"
+                      />
+                    </button>
                   </th>
-                  <th>Contato</th>
-                  <th>Módulo</th>
-                  <th>Turma</th>
+                  <th>
+                    <span className="table-header-label">Contato</span>
+                  </th>
+                  <th>
+                    <button
+                      className={`table-header-button ${studentSortKey === "module" ? "is-active" : ""}`}
+                      type="button"
+                      onClick={() => handleStudentSort("module")}
+                    >
+                      <span>Módulo</span>
+                      <ChevronDown
+                        className={`table-header-button__icon ${
+                          studentSortKey === "module" && studentSortDirection === "asc" ? "is-ascending" : ""
+                        }`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      className={`table-header-button ${studentSortKey === "className" ? "is-active" : ""}`}
+                      type="button"
+                      onClick={() => handleStudentSort("className")}
+                    >
+                      <span>Turma</span>
+                      <ChevronDown
+                        className={`table-header-button__icon ${
+                          studentSortKey === "className" && studentSortDirection === "asc" ? "is-ascending" : ""
+                        }`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredStudents.map((student) => (
+                {paginatedStudents.map((student) => (
                   <tr key={student.id}>
                     <td>
                       <div className="student-cell">
@@ -952,6 +1275,91 @@ export function StudentsPageDrawer() {
             </table>
           </div>
 
+          <div className="students-mobile-list">
+            {paginatedStudents.map((student) => (
+              <article key={student.id} className="students-mobile-card">
+                <div className="students-mobile-card__header">
+                  <div className="student-cell">
+                    <Checkbox aria-label={`Selecionar ${student.name}`} />
+
+                    {student.avatar ? (
+                      <img className="student-avatar" src={student.avatar} alt="" aria-hidden="true" />
+                    ) : (
+                      <span className="student-avatar student-avatar--initials">{student.initials}</span>
+                    )}
+
+                    <button
+                      className="student-name-button"
+                      type="button"
+                      onClick={() => {
+                        setSelectedStudent(student);
+                        setActiveTab("personal");
+                      }}
+                    >
+                      <span className="student-name">{student.name}</span>
+                    </button>
+                  </div>
+                  <StatusBadge status={student.status} />
+                </div>
+
+                <div className="students-mobile-card__body">
+                  <div className="students-mobile-card__field">
+                    <span>Contato</span>
+                    <div className="contact-cell">
+                      <span>{student.phone}</span>
+                      <span>{student.email}</span>
+                    </div>
+                  </div>
+
+                  <div className="students-mobile-card__field">
+                    <span>Módulo</span>
+                    <Pill label={student.module} tone={student.moduleTone as StudentTone} />
+                  </div>
+
+                  <div className="students-mobile-card__field">
+                    <span>Turma</span>
+                    <Pill label={student.className} tone={student.classTone as StudentTone} />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {totalPages > 1 ? (
+            <footer className="pagination">
+              <button
+                className="pagination__button"
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+              >
+                <span>Anterior</span>
+              </button>
+
+              <div className="pagination__numbers" aria-label="Paginação da tabela de alunos">
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                  <button
+                    key={page}
+                    className={`pagination__number ${page === currentPage ? "is-active" : ""}`}
+                    type="button"
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                className="pagination__button"
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <span>Próxima</span>
+              </button>
+            </footer>
+          ) : null}
+
         </section>
       </main>
 
@@ -961,10 +1369,21 @@ export function StudentsPageDrawer() {
             student={selectedStudent}
             activeTab={activeTab}
             onTabChange={setActiveTab}
+            onOpenFullHistory={() => {
+              setHistoryStudent(selectedStudent);
+              setSelectedStudent(null);
+              setIsDrawerClosing(false);
+            }}
             onClose={closeDrawer}
           />
         </div>
       ) : null}
+        </>
+      )}
     </>
   );
 }
+
+
+
+
