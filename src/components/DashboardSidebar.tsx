@@ -4,6 +4,7 @@ import {
   Home,
   LogOut,
   Music2,
+  PanelLeftClose,
   Settings,
   ShieldCheck,
   UserRound,
@@ -12,13 +13,16 @@ import {
 } from "lucide-react";
 
 import { assetUrls } from "../data/assets";
+import { DashboardNavItem } from "./dashboard/DashboardNavItem";
 
 export type DashboardPage = "overview" | "students" | "attendance";
 
 type DashboardSidebarProps = {
   activePage: DashboardPage;
   isOpen?: boolean;
+  isCollapsed?: boolean;
   onClose?: () => void;
+  onToggleCollapse: () => void;
   onNavigate: (page: DashboardPage) => void;
 };
 
@@ -40,13 +44,28 @@ const secondaryItems = [
   { label: "Configura\u00E7\u00F5es", icon: Settings }
 ];
 
-export function DashboardSidebar({ activePage, isOpen = false, onClose, onNavigate }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  activePage,
+  isOpen = false,
+  isCollapsed = false,
+  onClose,
+  onToggleCollapse,
+  onNavigate
+}: DashboardSidebarProps) {
   return (
     <>
       <div className={`dashboard-sidebar-overlay ${isOpen ? "is-open" : ""}`} aria-hidden={!isOpen} onClick={onClose} />
-      <aside className={`sidebar dashboard-sidebar ${isOpen ? "is-open" : ""}`}>
+      <aside className={`sidebar dashboard-sidebar ${isOpen ? "is-open" : ""} ${isCollapsed ? "is-collapsed" : ""}`}>
         <div className="sidebar__brand">
           <img className="sidebar__logo" src={assetUrls.logo} alt="Escola de Musica" />
+          <button
+            className="sidebar__collapse"
+            type="button"
+            aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+            onClick={onToggleCollapse}
+          >
+            <PanelLeftClose aria-hidden="true" />
+          </button>
           <button className="sidebar__close" type="button" aria-label="Fechar menu" onClick={onClose}>
             <X aria-hidden="true" />
           </button>
@@ -55,21 +74,15 @@ export function DashboardSidebar({ activePage, isOpen = false, onClose, onNaviga
         <div className="sidebar__content">
           <nav className="sidebar__nav" aria-label="Navegacao principal">
             {primaryItems.map((item) => {
-              const isActive = item.id === activePage;
-              const Icon = item.icon;
-
               return (
-                <button
+                <DashboardNavItem
                   key={item.label}
-                  className={`nav-item ${isActive ? "nav-item--active" : ""}`}
-                  type="button"
-                  onClick={() => {
-                    onNavigate(item.id);
-                  }}
-                >
-                  <Icon className="nav-item__icon" aria-hidden="true" />
-                  <span>{item.label}</span>
-                </button>
+                  icon={item.icon}
+                  label={item.label}
+                  isCollapsed={isCollapsed}
+                  isActive={item.id === activePage}
+                  onClick={() => onNavigate(item.id)}
+                />
               );
             })}
           </nav>
@@ -78,14 +91,7 @@ export function DashboardSidebar({ activePage, isOpen = false, onClose, onNaviga
 
           <nav className="sidebar__nav" aria-label="Navegacao secundaria">
             {secondaryItems.map((item) => {
-              const Icon = item.icon;
-
-              return (
-                <button key={item.label} className="nav-item" type="button">
-                  <Icon className="nav-item__icon" aria-hidden="true" />
-                  <span>{item.label}</span>
-                </button>
-              );
+              return <DashboardNavItem key={item.label} icon={item.icon} label={item.label} isCollapsed={isCollapsed} />;
             })}
           </nav>
         </div>
@@ -94,7 +100,7 @@ export function DashboardSidebar({ activePage, isOpen = false, onClose, onNaviga
           <div className="sidebar-user">
             <img className="sidebar-user__avatar" src={assetUrls.userAvatar} alt="Andressa" />
             <div>
-              <p className="sidebar-user__name">Andressa</p>
+              <p className="sidebar-user__name">Andressa Mendes</p>
               <p className="sidebar-user__email">andressa.clm@gmail.com</p>
             </div>
           </div>

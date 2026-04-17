@@ -1,10 +1,26 @@
-import { Menu } from "lucide-react";
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { assetUrls } from "../data/assets";
 
-export function TopBar({ onMenuToggle }: { onMenuToggle: () => void }) {
+export function TopBar({
+  isSidebarCollapsed,
+  onMenuToggle,
+  onSidebarToggle
+}: {
+  isSidebarCollapsed: boolean;
+  onMenuToggle: () => void;
+  onSidebarToggle: () => void;
+}) {
   return (
     <header className="topbar">
+      <button
+        className="topbar__sidebar-toggle"
+        type="button"
+        aria-label={isSidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+        onClick={onSidebarToggle}
+      >
+        {isSidebarCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}
+      </button>
       <button className="topbar__menu-button" type="button" aria-label="Abrir menu" onClick={onMenuToggle}>
         <Menu aria-hidden="true" />
       </button>

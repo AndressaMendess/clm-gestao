@@ -1,14 +1,9 @@
-import {
-  ArrowRight,
-  CalendarDays,
-  CheckCircle2,
-  ClipboardCheck,
-  ClipboardList,
-  Users
-} from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, Users } from "lucide-react";
 
 import { attendanceClassOptions, attendanceHistory } from "../data/attendance";
 import { students } from "../data/students";
+import { DashboardActionCard } from "./dashboard/DashboardActionCard";
+import { DashboardPanel } from "./dashboard/DashboardPanel";
 
 type OverviewPageProps = {
   onOpenAttendanceStart: () => void;
@@ -81,7 +76,7 @@ export function OverviewPage({
     },
     {
       id: "attendance",
-      title: "Presencas",
+      title: "Presen\u00E7as",
       description: "Consulte o hist\u00F3rico de registros de presen\u00E7a.",
       icon: ClipboardList,
       tone: "green",
@@ -93,10 +88,15 @@ export function OverviewPage({
     .sort((first, second) => parseEntryDate(second.date, second.time).getTime() - parseEntryDate(first.date, first.time).getTime())
     .slice(0, 2);
 
+  const presentStudentsCount = attendanceHistory.reduce(
+    (count, entry) => count + entry.students.filter((student) => student.status === "Presente").length,
+    0
+  );
+
   const stats = [
     {
-      label: "M\u00F3dulos Ativos",
-      value: new Set(attendanceClassOptions.map((item) => item.moduleLabel)).size,
+      label: "Alunos Presentes",
+      value: presentStudentsCount,
       tone: "orange"
     },
     {
@@ -124,40 +124,29 @@ export function OverviewPage({
 
       <section className="overview-actions" aria-label="A\u00E7\u00F5es r\u00E1pidas">
         {overviewActions.map((action) => {
-          const Icon = action.icon;
-
           return (
-            <button
+            <DashboardActionCard
               key={action.id}
-              className={`overview-action-card overview-action-card--${action.tone}`}
-              type="button"
+              title={action.title}
+              description={action.description}
+              icon={action.icon}
+              tone={action.tone}
               onClick={action.onClick}
-            >
-              <div className="overview-action-card__top">
-                <span className="overview-action-card__icon" aria-hidden="true">
-                  <Icon />
-                </span>
-                <ArrowRight className="overview-action-card__arrow" aria-hidden="true" />
-              </div>
-
-              <div className="overview-action-card__copy">
-                <strong>{action.title}</strong>
-                <p>{action.description}</p>
-              </div>
-            </button>
+            />
           );
         })}
       </section>
 
       <section className="overview-grid" aria-label="Resumo da opera\u00E7\u00E3o">
-        <article className="overview-panel overview-panel--activity">
-          <header className="overview-panel__header">
-            <h2>Atividade Recente</h2>
+        <DashboardPanel
+          title="Atividade Recente"
+          className="dashboard-panel--activity"
+          action={
             <button className="overview-panel__link" type="button" onClick={onOpenAttendanceHistory}>
               Ver tudo
             </button>
-          </header>
-
+          }
+        >
           <div className="overview-activity-list">
             {recentEntries.map((entry) => {
               const entryDate = parseEntryDate(entry.date, entry.time);
@@ -186,13 +175,9 @@ export function OverviewPage({
               );
             })}
           </div>
-        </article>
+        </DashboardPanel>
 
-        <aside className="overview-panel overview-panel--stats">
-          <header className="overview-panel__header overview-panel__header--compact">
-            <h2>Estat\u00EDsticas R\u00E1pidas</h2>
-          </header>
-
+        <DashboardPanel title="Estat\u00EDsticas R\u00E1pidas" className="dashboard-panel--stats" compactHeader>
           <div className="overview-stats-list">
             {stats.map((stat) => (
               <div key={stat.label} className="overview-stat">
@@ -206,7 +191,7 @@ export function OverviewPage({
               </div>
             ))}
           </div>
-        </aside>
+        </DashboardPanel>
       </section>
     </main>
   );
