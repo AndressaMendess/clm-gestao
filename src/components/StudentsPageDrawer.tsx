@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronDown, Clock3, ExternalLink, FileText, PenLine, Plus, Search, Trash2 } from "lucide-react";
+import type { FormEvent } from "react";
 
 import { Badge } from "@/src/components/ui/badge";
 import { Checkbox } from "@/src/components/ui/checkbox";
@@ -18,6 +19,19 @@ type StudentStatus = "Ativo" | "Inativo" | "Trancamento";
 type StudentTone = "violet" | "orange" | "blue" | "pink";
 type DrawerTab = "personal" | "contact" | "address" | "attachments" | "frequency";
 type FrequencyRecord = StudentAttendanceHistoryRecordView;
+type JustificationType = "Atestado médico" | "Declaração" | "Outro";
+type JustificationStatus = "Pendente" | "Aprovada" | "Rejeitada";
+
+type JustificationRecord = {
+  id: string;
+  classDate: string;
+  type: JustificationType;
+  status: JustificationStatus;
+  note: string;
+  fileName?: string;
+  fileSizeLabel?: string;
+  createdAtLabel: string;
+};
 
 type StudentRecord = (typeof students)[number] & {
   attendance: FrequencyRecord[];
@@ -312,6 +326,14 @@ const frequencyFallbackByStudentId: Partial<Record<number, FrequencyRecord[]>> =
   ]
 };
 
+const justificationTypeOptions: JustificationType[] = ["Atestado médico", "Declaração", "Outro"];
+const justificationStatusOptions: JustificationStatus[] = ["Pendente", "Aprovada", "Rejeitada"];
+const justificationStatusTone: Record<JustificationStatus, "warning" | "success" | "error"> = {
+  Pendente: "warning",
+  Aprovada: "success",
+  Rejeitada: "error"
+};
+
 function parseBrazilianDate(value: string) {
   const [day, month, year] = value.split("/").map(Number);
 
@@ -356,6 +378,28 @@ function compareStudentStatus(left: StudentStatus, right: StudentStatus) {
 
 function normalizeStudentText(value: string) {
   return value;
+}
+
+function formatIsoDateToBrazilianDate(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const [year, month, day] = value.split("-");
+
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year}`;
+}
+
+function formatBytesToReadableSize(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function FilterButton({ label }: FilterButtonProps) {
@@ -547,13 +591,15 @@ function AttachmentSectionHeader({
 
 function AttachmentActionButton({
   label,
-  iconName
+  iconName,
+  onClick
 }: {
   label: string;
   iconName: "upload" | "plus";
+  onClick?: () => void;
 }) {
   return (
-    <button className="attachment-action-button" type="button">
+    <button className="attachment-action-button" type="button" onClick={onClick}>
       <AttachmentIcon name={iconName} className="attachment-symbol attachment-symbol--action" />
       <span>{label}</span>
     </button>
@@ -716,14 +762,218 @@ function EmptyAttachmentState() {
   );
 }
 
+function JustificationStatusBadge({ status }: { status: JustificationStatus }) {
+  return (
+    <span className={`justification-status-badge justification-status-badge--${justificationStatusTone[status]}`}>
+      <Clock3 aria-hidden="true" />
+      {status}
+    </span>
+  );
+}
+
+function JustificationRecordItem({ record }: { record: JustificationRecord }) {
+  return (
+    <article className="justification-record">
+      <div className="justification-record__header">
+        <div className="justification-record__date-group">
+          <span className="justification-record__date-icon" aria-hidden="true">
+            <AttachmentIcon name="calendar" className="attachment-symbol attachment-symbol--action" />
+          </span>
+          <strong>{record.classDate}</strong>
+        </div>
+        <div className="justification-record__header-actions">
+          <JustificationStatusBadge status={record.status} />
+          <button className="justification-record__icon-button" type="button" aria-label="Excluir justificativa">
+            <Trash2 aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      <div className="justification-record__content">
+        <span className="justification-record__label">Motivo</span>
+        <p className="justification-record__value">{record.type}</p>
+        {record.note ? (
+          <>
+            <span className="justification-record__label">Observação</span>
+            <p className="justification-record__note">{record.note}</p>
+          </>
+        ) : null}
+      </div>
+
+      <div className="justification-record__footer">
+        <button className="justification-record__button justification-record__button--secondary" type="button">
+          <PenLine aria-hidden="true" />
+          <span>Editar</span>
+        </button>
+        <button className="justification-record__button justification-record__button--link" type="button">
+          <ExternalLink aria-hidden="true" />
+          <span>Ver chamada</span>
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function StudentJustificationModal({
+  isOpen,
+  studentName,
+  form,
+  selectedFile,
+  fileError,
+  onClose,
+  onSubmit,
+  onFieldChange,
+  onFileChange,
+  onFileRemove
+}: {
+  isOpen: boolean;
+  studentName: string;
+  form: {
+    classDate: string;
+    type: JustificationType;
+    status: JustificationStatus;
+    note: string;
+  };
+  selectedFile: File | null;
+  fileError: string;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onFieldChange: (field: "classDate" | "type" | "status" | "note", value: string) => void;
+  onFileChange: (file: File | null) => void;
+  onFileRemove: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="justification-modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        className="justification-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="justification-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="justification-modal__header">
+          <div className="justification-modal__copy">
+            <h2 id="justification-modal-title">Adicionar justificativa</h2>
+            <p>Registre uma justificativa de falta para o aluno {studentName}.</p>
+          </div>
+
+          <button className="justification-modal__close" type="button" aria-label="Fechar modal" onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <form className="justification-modal__form" onSubmit={onSubmit}>
+          <div className="justification-modal__fields">
+            <label className="justification-modal__field">
+              <span>Data da aula *</span>
+              <input
+                type="date"
+                value={form.classDate}
+                onChange={(event) => onFieldChange("classDate", event.target.value)}
+                required
+              />
+            </label>
+
+            <label className="justification-modal__field justification-modal__field--select">
+              <span>Tipo de justificativa</span>
+              <select value={form.type} onChange={(event) => onFieldChange("type", event.target.value)} required>
+                {justificationTypeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown aria-hidden="true" />
+            </label>
+
+            <label className="justification-modal__field justification-modal__field--select">
+              <span>Status</span>
+              <select value={form.status} onChange={(event) => onFieldChange("status", event.target.value)} required>
+                {justificationStatusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown aria-hidden="true" />
+            </label>
+
+            <label className="justification-modal__field">
+              <span>Observação</span>
+              <textarea
+                rows={4}
+                placeholder="Adicione observações sobre a justificativa..."
+                value={form.note}
+                onChange={(event) => onFieldChange("note", event.target.value)}
+              />
+            </label>
+
+            <div className="justification-modal__field">
+              <span>Documento (opcional)</span>
+              {selectedFile ? (
+                <div className="justification-modal__upload justification-modal__upload--attached">
+                  <span className="justification-modal__upload-file-icon" aria-hidden="true">
+                    <FileText />
+                  </span>
+                  <strong>{selectedFile.name}</strong>
+                  <span>{formatBytesToReadableSize(selectedFile.size)}</span>
+                  <button
+                    className="justification-modal__upload-remove"
+                    type="button"
+                    aria-label="Remover documento"
+                    onClick={onFileRemove}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </button>
+                </div>
+              ) : (
+                <label className="justification-modal__upload">
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                    onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+                  />
+                  <span className="justification-modal__upload-icon" aria-hidden="true">
+                    <AttachmentIcon name="upload" className="attachment-symbol attachment-symbol--action" />
+                  </span>
+                  <strong>Clique ou arraste para enviar</strong>
+                  <span>PDF, PNG, JPG até 10MB</span>
+                </label>
+              )}
+              {fileError ? <small className="justification-modal__field-error">{fileError}</small> : null}
+            </div>
+          </div>
+
+          <div className="justification-modal__footer">
+            <button className="justification-modal__button justification-modal__button--ghost" type="button" onClick={onClose}>
+              Cancelar
+            </button>
+            <button className="justification-modal__button justification-modal__button--primary" type="submit">
+              Salvar justificativa
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function DrawerTabContent({
   student,
   activeTab,
-  onOpenFullHistory
+  onOpenFullHistory,
+  onOpenJustificationModal,
+  justificationRecords
 }: {
   student: StudentRecord;
   activeTab: DrawerTab;
   onOpenFullHistory: () => void;
+  onOpenJustificationModal: () => void;
+  justificationRecords: JustificationRecord[];
 }) {
   if (activeTab === "contact") {
     return (
@@ -757,8 +1007,16 @@ function DrawerTabContent({
         <section className="student-card student-card--attachments">
           <AttachmentSectionHeader title="Justificativas de Faltas" iconName="calendar" />
           <div className="attachment-section__body">
-            <AttachmentActionButton label="Adicionar justificativa" iconName="plus" />
-            <EmptyAttachmentState />
+            <AttachmentActionButton label="Adicionar justificativa" iconName="plus" onClick={onOpenJustificationModal} />
+            {justificationRecords.length > 0 ? (
+              <div className="justification-records">
+                {justificationRecords.map((record) => (
+                  <JustificationRecordItem key={record.id} record={record} />
+                ))}
+              </div>
+            ) : (
+              <EmptyAttachmentState />
+            )}
           </div>
         </section>
       </>
@@ -815,13 +1073,17 @@ function StudentDrawer({
   activeTab,
   onTabChange,
   onClose,
-  onOpenFullHistory
+  onOpenFullHistory,
+  onOpenJustificationModal,
+  justificationRecords
 }: {
   student: StudentRecord;
   activeTab: DrawerTab;
   onTabChange: (tab: DrawerTab) => void;
   onClose: () => void;
   onOpenFullHistory: () => void;
+  onOpenJustificationModal: () => void;
+  justificationRecords: JustificationRecord[];
 }) {
   const initials =
     student.initials ??
@@ -888,7 +1150,13 @@ function StudentDrawer({
           <div className="student-drawer__content">
             {drawerTabs.map((tab) => (
               <TabsContent key={tab.id} value={tab.id}>
-                <DrawerTabContent student={student} activeTab={tab.id} onOpenFullHistory={onOpenFullHistory} />
+                <DrawerTabContent
+                  student={student}
+                  activeTab={tab.id}
+                  onOpenFullHistory={onOpenFullHistory}
+                  onOpenJustificationModal={onOpenJustificationModal}
+                  justificationRecords={justificationRecords}
+                />
               </TabsContent>
             ))}
           </div>
@@ -911,8 +1179,24 @@ export function StudentsPageDrawer() {
   const [studentSortDirection, setStudentSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDrawerClosing, setIsDrawerClosing] = useState(false);
+  const [isJustificationModalOpen, setIsJustificationModalOpen] = useState(false);
+  const [selectedJustificationFile, setSelectedJustificationFile] = useState<File | null>(null);
+  const [justificationFileError, setJustificationFileError] = useState("");
+  const [justificationRecordsByStudent, setJustificationRecordsByStudent] = useState<Record<number, JustificationRecord[]>>({});
+  const [justificationForm, setJustificationForm] = useState<{
+    classDate: string;
+    type: JustificationType;
+    status: JustificationStatus;
+    note: string;
+  }>({
+    classDate: "",
+    type: "Atestado médico",
+    status: "Pendente",
+    note: ""
+  });
 
   const closeDrawer = () => {
+    closeJustificationModal();
     setIsDrawerClosing(true);
     window.setTimeout(() => {
       setSelectedStudent(null);
@@ -936,7 +1220,131 @@ export function StudentsPageDrawer() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedStudent]);
 
+  useEffect(() => {
+    if (!isJustificationModalOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeJustificationModal();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isJustificationModalOpen]);
+
   const classOptions = useMemo(() => getClassOptions(moduleFilter), [moduleFilter]);
+  const selectedStudentJustifications = selectedStudent ? justificationRecordsByStudent[selectedStudent.id] ?? [] : [];
+
+  function resetJustificationForm() {
+    setJustificationForm({
+      classDate: "",
+      type: "Atestado médico",
+      status: "Pendente",
+      note: ""
+    });
+    setSelectedJustificationFile(null);
+    setJustificationFileError("");
+  }
+
+  function closeJustificationModal() {
+    setIsJustificationModalOpen(false);
+    resetJustificationForm();
+  }
+
+  function handleJustificationFieldChange(field: "classDate" | "type" | "status" | "note", value: string) {
+    setJustificationForm((current) => {
+      if (field === "type") {
+        return {
+          ...current,
+          type: value as JustificationType
+        };
+      }
+
+      if (field === "status") {
+        return {
+          ...current,
+          status: value as JustificationStatus
+        };
+      }
+
+      if (field === "note") {
+        return {
+          ...current,
+          note: value
+        };
+      }
+
+      return {
+        ...current,
+        classDate: value
+      };
+    });
+  }
+
+  function handleJustificationSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedStudent || !justificationForm.classDate || justificationFileError) {
+      return;
+    }
+
+    const nextRecord: JustificationRecord = {
+      id: `${selectedStudent.id}-${Date.now()}`,
+      classDate: formatIsoDateToBrazilianDate(justificationForm.classDate),
+      type: justificationForm.type,
+      status: justificationForm.status,
+      note: justificationForm.note.trim(),
+      fileName: selectedJustificationFile?.name,
+      fileSizeLabel: selectedJustificationFile ? formatBytesToReadableSize(selectedJustificationFile.size) : undefined,
+      createdAtLabel: new Intl.DateTimeFormat("pt-BR").format(new Date())
+    };
+
+    setJustificationRecordsByStudent((current) => ({
+      ...current,
+      [selectedStudent.id]: [nextRecord, ...(current[selectedStudent.id] ?? [])]
+    }));
+
+    closeJustificationModal();
+  }
+
+  function handleJustificationFileChange(file: File | null) {
+    if (!file) {
+      setSelectedJustificationFile(null);
+      setJustificationFileError("");
+      return;
+    }
+
+    const isValidType = ["application/pdf", "image/png", "image/jpeg"].includes(file.type);
+    if (!isValidType) {
+      setSelectedJustificationFile(null);
+      setJustificationFileError("Envie um arquivo PDF, PNG ou JPG.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setSelectedJustificationFile(null);
+      setJustificationFileError("O arquivo precisa ter no máximo 10MB.");
+      return;
+    }
+
+    setSelectedJustificationFile(file);
+    setJustificationFileError("");
+  }
+
+  function handleJustificationFileRemove() {
+    setSelectedJustificationFile(null);
+    setJustificationFileError("");
+  }
 
   const studentsWithDetails = useMemo(
     () =>
@@ -1375,8 +1783,27 @@ export function StudentsPageDrawer() {
               setIsDrawerClosing(false);
             }}
             onClose={closeDrawer}
+            onOpenJustificationModal={() => {
+              resetJustificationForm();
+              setIsJustificationModalOpen(true);
+            }}
+            justificationRecords={selectedStudentJustifications}
           />
         </div>
+      ) : null}
+      {selectedStudent ? (
+        <StudentJustificationModal
+          isOpen={isJustificationModalOpen}
+          studentName={selectedStudent.name}
+          form={justificationForm}
+          selectedFile={selectedJustificationFile}
+          fileError={justificationFileError}
+          onClose={closeJustificationModal}
+          onSubmit={handleJustificationSubmit}
+          onFieldChange={handleJustificationFieldChange}
+          onFileChange={handleJustificationFileChange}
+          onFileRemove={handleJustificationFileRemove}
+        />
       ) : null}
         </>
       )}
