@@ -127,7 +127,7 @@ const studentDetailsById: Record<number, StudentRecord["details"]> = {
     maritalStatus: "-",
     nationality: "Brasileira",
     fatherName: "-",
-    motherName: "Patricia Cano",
+    motherName: "Patrícia Cano",
     attachmentsCount: 2,
     contact: {
       phone: "(11) 98765-2211",
@@ -141,8 +141,8 @@ const studentDetailsById: Record<number, StudentRecord["details"]> = {
     sex: "Masculino",
     maritalStatus: "Solteiro",
     nationality: "Brasileira",
-    fatherName: "Joao Diggs",
-    motherName: "Celia Diggs",
+    fatherName: "João Diggs",
+    motherName: "Célia Diggs",
     attachmentsCount: 1,
     contact: {
       phone: "(11) 97654-9988",
@@ -185,12 +185,12 @@ const studentDetailsById: Record<number, StudentRecord["details"]> = {
 const drawerTabs: Array<{ id: DrawerTab; label: string }> = [
   { id: "personal", label: "Dados pessoais" },
   { id: "contact", label: "Contato" },
-  { id: "address", label: "Endereco" },
+  { id: "address", label: "Endereço" },
   { id: "attachments", label: "Anexos" }
 ];
 
 function normalizeStudentText(value: string) {
-  return value.replace("MÃ³dulo", "Modulo").replace("ViolÃ£o", "Violao");
+  return value.replace("Módulo", "Módulo").replace("Violão", "Violão");
 }
 
 function FilterButton({ label }: FilterButtonProps) {
@@ -261,8 +261,8 @@ function DrawerTabContent({ student, activeTab }: { student: StudentRecord; acti
   if (activeTab === "address") {
     return (
       <section className="student-card student-card--placeholder">
-        <h3 className="student-card__title">Endereco</h3>
-        <p className="student-card__placeholder-text">Conteudo desta aba em breve.</p>
+        <h3 className="student-card__title">Endereço</h3>
+        <p className="student-card__placeholder-text">Conteúdo desta aba em breve.</p>
       </section>
     );
   }
@@ -295,18 +295,18 @@ function DrawerTabContent({ student, activeTab }: { student: StudentRecord; acti
       </section>
 
       <section className="student-card">
-        <h3 className="student-card__title">Informacoes Familiares</h3>
+        <h3 className="student-card__title">Informações Familiares</h3>
         <div className="student-card__stack">
           <DrawerField label="Nome do pai" value={student.details.fatherName} />
-          <DrawerField label="Nome da mae" value={student.details.motherName} />
+          <DrawerField label="Nome da mãe" value={student.details.motherName} />
         </div>
       </section>
 
       <section className="student-card">
-        <h3 className="student-card__title">Modulo e Turma</h3>
+        <h3 className="student-card__title">Módulo e Turma</h3>
         <div className="student-card__stack">
           <div className="student-field">
-            <span className="student-field__label">Modulo</span>
+            <span className="student-field__label">Módulo</span>
             <Pill label={student.module} tone={student.moduleTone as StudentTone} />
           </div>
           <div className="student-field">
@@ -377,7 +377,7 @@ function StudentDrawer({
           </button>
         </div>
 
-        <nav className="student-drawer__tabs" aria-label="Secoes do aluno">
+        <nav className="student-drawer__tabs" aria-label="Seções do aluno">
           {drawerTabs.map((tab) => (
             <button
               key={tab.id}
@@ -463,7 +463,7 @@ export function StudentsPageTabs() {
           </label>
 
           <div className="filters__group">
-            <FilterButton label="Filtrar por Modulos" />
+            <FilterButton label="Filtrar por Módulos" />
             <FilterButton label="Filtrar por Turmas" />
             <FilterButton label="Filtrar por Status" />
           </div>
@@ -494,7 +494,7 @@ export function StudentsPageTabs() {
                     </div>
                   </th>
                   <th>Contato</th>
-                  <th>Modulo</th>
+                  <th>Módulo</th>
                   <th>Turma</th>
                 </tr>
               </thead>
@@ -551,7 +551,7 @@ export function StudentsPageTabs() {
               <span>Anterior</span>
             </button>
 
-            <div className="pagination__numbers" aria-label="Paginacao">
+            <div className="pagination__numbers" aria-label="Paginação">
               {["1", "2", "3", "...", "8", "9", "10"].map((item, index) => (
                 <button
                   key={item}
@@ -564,7 +564,7 @@ export function StudentsPageTabs() {
             </div>
 
             <button className="pagination__button" type="button">
-              <span>Proxima</span>
+              <span>Próxima</span>
               <img src={assetUrls.icons.arrowRight} alt="" aria-hidden="true" />
             </button>
           </footer>

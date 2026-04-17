@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
+﻿import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useMemo } from "react";
 
 import { attendanceClassOptions } from "../data/attendance";
@@ -30,13 +30,13 @@ export function AttendanceStartPage({ onBack, onSelectClass }: AttendanceStartPa
 
         <div className="page-header__copy dashboard-page__copy">
           <h1>Iniciar a chamada -</h1>
-          <p>Selecione a turma para registrar a presenca</p>
+          <p>Selecione a turma para registrar a presença</p>
         </div>
       </section>
 
       <section className="attendance-start-panel" aria-labelledby="attendance-start-title">
         <h2 id="attendance-start-title" className="sr-only">
-          Selecao de turma para iniciar chamada
+          Seleção de turma para iniciar chamada
         </h2>
 
         <div className="attendance-start-groups">

@@ -5,6 +5,7 @@ import {
   LogOut,
   Music2,
   PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   ShieldCheck,
   UserRound,
@@ -52,23 +53,33 @@ export function DashboardSidebar({
   onToggleCollapse,
   onNavigate
 }: DashboardSidebarProps) {
+  const ToggleIcon = isCollapsed ? PanelLeftOpen : PanelLeftClose;
+
   return (
     <>
       <div className={`dashboard-sidebar-overlay ${isOpen ? "is-open" : ""}`} aria-hidden={!isOpen} onClick={onClose} />
-      <aside className={`sidebar dashboard-sidebar ${isOpen ? "is-open" : ""} ${isCollapsed ? "is-collapsed" : ""}`}>
+      <aside
+        className={`sidebar dashboard-sidebar ${isOpen ? "is-open" : ""} ${isCollapsed ? "is-collapsed sidebar--collapsed" : ""}`}
+      >
         <div className="sidebar__brand">
-          <img className="sidebar__logo" src={assetUrls.logo} alt="Escola de Musica" />
-          <button
-            className="sidebar__collapse"
-            type="button"
-            aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
-            onClick={onToggleCollapse}
-          >
-            <PanelLeftClose aria-hidden="true" />
-          </button>
-          <button className="sidebar__close" type="button" aria-label="Fechar menu" onClick={onClose}>
-            <X aria-hidden="true" />
-          </button>
+          <div className="sidebar__brand-row">
+            <img className="sidebar__logo" src={assetUrls.logo} alt="Escola de Musica" />
+            <button
+              className="sidebar__toggle dashboard-sidebar__collapse-button"
+              type="button"
+              onClick={onToggleCollapse}
+              aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+              aria-expanded={!isCollapsed}
+            >
+              <ToggleIcon aria-hidden="true" />
+            </button>
+            <button className="sidebar__close" type="button" aria-label="Fechar menu" onClick={onClose}>
+              <X aria-hidden="true" />
+            </button>
+          </div>
+          <span className="sidebar__brand-badge" aria-hidden={!isCollapsed}>
+            CLM
+          </span>
         </div>
 
         <div className="sidebar__content">
@@ -99,15 +110,16 @@ export function DashboardSidebar({
         <div className="sidebar__footer">
           <div className="sidebar-user">
             <img className="sidebar-user__avatar" src={assetUrls.userAvatar} alt="Andressa" />
-            <div>
+            <div className="sidebar-user__meta">
               <p className="sidebar-user__name">Andressa Mendes</p>
               <p className="sidebar-user__email">andressa.clm@gmail.com</p>
             </div>
           </div>
 
-          <button className="logout-button" type="button">
+          <button className={`logout-button ${isCollapsed ? "logout-button--collapsed" : ""}`} type="button" aria-label="Sair">
             <LogOut aria-hidden="true" />
             <span>Sair</span>
+            {isCollapsed ? <span className="nav-item__tooltip">Sair</span> : null}
           </button>
         </div>
       </aside>

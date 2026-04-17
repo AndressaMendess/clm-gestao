@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronUp, Plus } from "lucide-react";
 
 import { attendanceHistory, type AttendanceHistoryEntry } from "../data/attendance";
@@ -62,8 +62,8 @@ export function AttendanceHistoryPage({
     <main className="students-page dashboard-page dashboard-page--attendance">
       <section className="page-header dashboard-page__header">
         <div className="page-header__copy dashboard-page__copy">
-          <h1>Presenca -</h1>
-          <p>Historico e gerenciamento de registros de presenca</p>
+          <h1>Presenças -</h1>
+          <p>Histórico e gerenciamento de registros de presença</p>
         </div>
 
         <button className="dashboard-cta-button" type="button" onClick={onStartAttendance}>
@@ -72,9 +72,9 @@ export function AttendanceHistoryPage({
         </button>
       </section>
 
-      <section className="dashboard-filters" aria-label="Filtros de presencas">
+      <section className="dashboard-filters" aria-label="Filtros de presenças">
         <FilterSelect
-          label="Filtrar por Modulos"
+          label="Filtrar por Módulos"
           value={moduleFilter}
           options={moduleOptions}
           onChange={(value) => {
@@ -92,7 +92,7 @@ export function AttendanceHistoryPage({
 
       <section className="attendance-history-list-card" aria-labelledby="attendance-history-title">
         <h2 id="attendance-history-title" className="sr-only">
-          Historico de presencas
+          Histórico de presenças
         </h2>
 
         <div className="attendance-history-list">
@@ -117,7 +117,7 @@ export function AttendanceHistoryPage({
                       <CalendarDays aria-hidden="true" />
                       {entry.date}
                     </span>
-                    <span>Registrado as {entry.time}</span>
+                    <span>Registrado às {entry.time}</span>
                     <span className="attendance-history-item-card__dot">|</span>
                     <span>por {entry.createdBy}</span>
                   </div>

@@ -1,4 +1,4 @@
-export type AttendanceStatus = "Presente" | "Ausente";
+﻿export type AttendanceStatus = "Presente" | "Ausente";
 export type AttendanceSessionStatus = "presente" | "nao_registrado";
 
 export type AttendanceStudentRecord = {
@@ -23,7 +23,7 @@ export type AttendanceSessionStudent = {
 export type AttendanceHistoryEntry = {
   id: number;
   title: string;
-  module: "Modulo I" | "Modulo II" | "Modulo III";
+  module: "Módulo I" | "Módulo II" | "Módulo III";
   className: string;
   date: string;
   time: string;
@@ -33,7 +33,7 @@ export type AttendanceHistoryEntry = {
 
 export type AttendanceClassOption = {
   id: number;
-  module: "Modulo I" | "Modulo II" | "Modulo III";
+  module: "Módulo I" | "Módulo II" | "Módulo III";
   moduleLabel: string;
   title: string;
   teacherName: string;
@@ -43,7 +43,7 @@ export type AttendanceClassOption = {
 export type AttendanceSession = {
   classId: number;
   title: string;
-  module: "Modulo I" | "Modulo II" | "Modulo III";
+  module: "Módulo I" | "Módulo II" | "Módulo III";
   moduleLabel: string;
   className: string;
   teacherName: string;
@@ -54,8 +54,8 @@ export type AttendanceSession = {
 export const attendanceHistory: AttendanceHistoryEntry[] = [
   {
     id: 1,
-    title: "Modulo I - Classe 1",
-    module: "Modulo I",
+    title: "Módulo I - Classe 1",
+    module: "Módulo I",
     className: "Classe 1",
     date: "14/04/2026",
     time: "19:40",
@@ -67,8 +67,8 @@ export const attendanceHistory: AttendanceHistoryEntry[] = [
   },
   {
     id: 2,
-    title: "Modulo II - Canto coral",
-    module: "Modulo II",
+    title: "Módulo II - Canto coral",
+    module: "Módulo II",
     className: "Canto coral",
     date: "24/01/2024",
     time: "19:30",
@@ -77,8 +77,8 @@ export const attendanceHistory: AttendanceHistoryEntry[] = [
   },
   {
     id: 3,
-    title: "Modulo I - Classe 2",
-    module: "Modulo I",
+    title: "Módulo I - Classe 2",
+    module: "Módulo I",
     className: "Classe 2",
     date: "25/01/2024",
     time: "14:10",
@@ -90,49 +90,49 @@ export const attendanceHistory: AttendanceHistoryEntry[] = [
 export const attendanceClassOptions: AttendanceClassOption[] = [
   {
     id: 101,
-    module: "Modulo I",
-    moduleLabel: "Modulo I",
-    title: "Modulo I - Classe 1",
+    module: "Módulo I",
+    moduleLabel: "Módulo I",
+    title: "Módulo I - Classe 1",
     teacherName: "Prof. Maria Silva",
     studentCount: 40
   },
   {
     id: 102,
-    module: "Modulo I",
-    moduleLabel: "Modulo I",
-    title: "Modulo I - Classe 2",
+    module: "Módulo I",
+    moduleLabel: "Módulo I",
+    title: "Módulo I - Classe 2",
     teacherName: "Prof. Maria Silva",
     studentCount: 40
   },
   {
     id: 201,
-    module: "Modulo II",
-    moduleLabel: "Modulo II",
-    title: "Modulo II - Teoria",
+    module: "Módulo II",
+    moduleLabel: "Módulo II",
+    title: "Módulo II - Teoria",
     teacherName: "Prof. Maria Silva",
     studentCount: 40
   },
   {
     id: 202,
-    module: "Modulo II",
-    moduleLabel: "Modulo II",
-    title: "Modulo II - Violino",
+    module: "Módulo II",
+    moduleLabel: "Módulo II",
+    title: "Módulo II - Violino",
     teacherName: "Prof. Maria Silva",
     studentCount: 40
   },
   {
     id: 301,
-    module: "Modulo III",
-    moduleLabel: "Modulo III",
-    title: "Modulo III - Teoria",
+    module: "Módulo III",
+    moduleLabel: "Módulo III",
+    title: "Módulo III - Teoria",
     teacherName: "Prof. Maria Silva",
     studentCount: 40
   },
   {
     id: 302,
-    module: "Modulo III",
-    moduleLabel: "Modulo III",
-    title: "Modulo III - Violino",
+    module: "Módulo III",
+    moduleLabel: "Módulo III",
+    title: "Módulo III - Violino",
     teacherName: "Prof. Maria Silva",
     studentCount: 40
   }
@@ -141,9 +141,9 @@ export const attendanceClassOptions: AttendanceClassOption[] = [
 const attendanceSessionTemplates: Record<number, AttendanceSession> = {
   101: {
     classId: 101,
-    title: "Modulo I - Classe 1",
-    module: "Modulo I",
-    moduleLabel: "Modulo I",
+    title: "Módulo I - Classe 1",
+    module: "Módulo I",
+    moduleLabel: "Módulo I",
     className: "Classe 1",
     teacherName: "Prof. Maria Silva",
     dateLabel: "12/01/2025, quarta-feira.",
@@ -151,7 +151,7 @@ const attendanceSessionTemplates: Record<number, AttendanceSession> = {
       {
         id: 1001,
         name: "Olivia Rhye",
-        moduleLabel: "Modulo I",
+        moduleLabel: "Módulo I",
         status: "nao_registrado",
         recordedAt: null,
         avatarImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80"
@@ -159,7 +159,7 @@ const attendanceSessionTemplates: Record<number, AttendanceSession> = {
       {
         id: 1002,
         name: "Phoenix Baker",
-        moduleLabel: "Modulo I",
+        moduleLabel: "Módulo I",
         status: "nao_registrado",
         recordedAt: null,
         avatarImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80"
@@ -167,7 +167,7 @@ const attendanceSessionTemplates: Record<number, AttendanceSession> = {
       {
         id: 1003,
         name: "Lana Steiner",
-        moduleLabel: "Modulo I",
+        moduleLabel: "Módulo I",
         status: "nao_registrado",
         recordedAt: null,
         avatarImage: "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=80&q=80"
@@ -175,7 +175,7 @@ const attendanceSessionTemplates: Record<number, AttendanceSession> = {
       {
         id: 1004,
         name: "Demi Wilkinson",
-        moduleLabel: "Modulo I",
+        moduleLabel: "Módulo I",
         status: "nao_registrado",
         recordedAt: null,
         avatarImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=80&q=80"
@@ -183,7 +183,7 @@ const attendanceSessionTemplates: Record<number, AttendanceSession> = {
       {
         id: 1005,
         name: "Candice Wu",
-        moduleLabel: "Modulo I",
+        moduleLabel: "Módulo I",
         status: "nao_registrado",
         recordedAt: null,
         avatarInitials: "CW",
