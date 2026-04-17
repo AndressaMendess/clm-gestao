@@ -5,6 +5,3 @@ vite.config.js
 vite.config.d.ts
 
 .vercel
-
-*storybook.log
-storybook-static
