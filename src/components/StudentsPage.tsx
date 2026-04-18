@@ -1,5 +1,7 @@
 import { assetUrls } from "../data/assets";
 import { students } from "../data/students";
+import { StatusBadge } from "./ui/status-badge";
+import { TableCard } from "./ui/table-card";
 
 type FilterButtonProps = {
   label: string;
@@ -11,21 +13,6 @@ function FilterButton({ label }: FilterButtonProps) {
       <span>{label}</span>
       <img src={assetUrls.icons.caretDown} alt="" aria-hidden="true" />
     </button>
-  );
-}
-
-type StatusBadgeProps = {
-  status: "Ativo" | "Inativo" | "Trancamento";
-};
-
-function StatusBadge({ status }: StatusBadgeProps) {
-  const tone = status === "Ativo" ? "success" : "error";
-
-  return (
-    <span className={`status-badge status-badge--${tone}`}>
-      <span className="status-badge__dot" aria-hidden="true" />
-      {status}
-    </span>
   );
 }
 
@@ -73,13 +60,7 @@ export function StudentsPage() {
         </div>
       </section>
 
-      <section className="table-card" aria-labelledby="students-title">
-        <header className="table-card__header">
-          <div className="table-card__title">
-            <h2 id="students-title">Alunos</h2>
-            <span className="count-badge">200 alunos</span>
-          </div>
-        </header>
+      <TableCard title="Alunos" titleId="students-title" countLabel="200 alunos">
 
         <div className="table-scroll">
           <table className="students-table">
@@ -181,7 +162,7 @@ export function StudentsPage() {
             <img src={assetUrls.icons.arrowRight} alt="" aria-hidden="true" />
           </button>
         </footer>
-      </section>
+      </TableCard>
     </main>
   );
 }

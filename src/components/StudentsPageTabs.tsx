@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 
 import { assetUrls } from "../data/assets";
 import { students } from "../data/students";
+import { StatusBadge } from "./ui/status-badge";
+import { TableCard } from "./ui/table-card";
 
 type FilterButtonProps = {
   label: string;
 };
 
-type StudentStatus = "Ativo" | "Inativo" | "Trancamento";
 type StudentTone = "violet" | "orange" | "blue" | "pink";
 type DrawerTab = "personal" | "contact" | "address" | "attachments";
 
@@ -199,17 +200,6 @@ function FilterButton({ label }: FilterButtonProps) {
       <span>{label}</span>
       <img src={assetUrls.icons.caretDown} alt="" aria-hidden="true" />
     </button>
-  );
-}
-
-function StatusBadge({ status }: { status: StudentStatus }) {
-  const tone = status === "Ativo" ? "success" : "error";
-
-  return (
-    <span className={`status-badge status-badge--${tone}`}>
-      <span className="status-badge__dot" aria-hidden="true" />
-      {status}
-    </span>
   );
 }
 
@@ -469,13 +459,11 @@ export function StudentsPageTabs() {
           </div>
         </section>
 
-        <section className="table-card" aria-labelledby="students-title">
-          <header className="table-card__header">
-            <div className="table-card__title">
-              <h2 id="students-title">Alunos</h2>
-              <span className="count-badge">{studentsWithDetails.length} alunos</span>
-            </div>
-          </header>
+        <TableCard
+          title="Alunos"
+          titleId="students-title"
+          countLabel={`${studentsWithDetails.length} alunos`}
+        >
 
           <div className="table-scroll">
             <table className="students-table">
@@ -568,7 +556,7 @@ export function StudentsPageTabs() {
               <img src={assetUrls.icons.arrowRight} alt="" aria-hidden="true" />
             </button>
           </footer>
-        </section>
+        </TableCard>
       </main>
 
       {selectedStudent ? (

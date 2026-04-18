@@ -5,29 +5,28 @@ import { cn } from "@/src/lib/utils";
 
 const Tabs = TabsPrimitive.Root;
 
+type TabsVariant = "default" | "drawer" | "pill";
+
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn("inline-flex items-center text-muted-foreground", className)}
-    {...props}
-  />
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & {
+    variant?: TabsVariant;
+  }
+>(({ className, variant = "default", ...props }, ref) => (
+  <TabsPrimitive.List ref={ref} className={cn("tabs-list", `tabs-list--${variant}`, className)} {...props} />
 ));
 
 TabsList.displayName = TabsPrimitive.List.displayName;
 
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> & {
+    variant?: TabsVariant;
+  }
+>(({ className, variant = "default", ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
-    className={cn(
-      "inline-flex items-center justify-center gap-1.5 whitespace-nowrap border-b border-transparent px-0 py-3 text-sm font-medium text-[#667085] outline-none transition-colors disabled:pointer-events-none disabled:opacity-50 data-[state=active]:border-b-[var(--color-brand-orange)] data-[state=active]:text-[var(--color-brand-orange)]",
-      className,
-    )}
+    className={cn("tabs-trigger", `tabs-trigger--${variant}`, className)}
     {...props}
   />
 ));
@@ -38,7 +37,7 @@ const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content ref={ref} className={cn("outline-none", className)} {...props} />
+  <TabsPrimitive.Content ref={ref} className={cn("tabs-content", className)} {...props} />
 ));
 
 TabsContent.displayName = TabsPrimitive.Content.displayName;

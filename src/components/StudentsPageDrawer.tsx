@@ -1,22 +1,30 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Clock3, ExternalLink, FileText, PenLine, Plus, Search, Trash2 } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckCircle2, ChevronDown, Clock3, Download, ExternalLink, Eye, FileText, PenLine, Plus, Trash2, Upload, X } from "lucide-react";
 import type { FormEvent } from "react";
 
 import { Badge } from "@/src/components/ui/badge";
+import { Button, IconButton } from "@/src/components/ui/button";
+import { Card } from "@/src/components/ui/card";
 import { Checkbox } from "@/src/components/ui/checkbox";
+import { CollapsibleCard } from "@/src/components/ui/collapsible-card";
+import { DatePicker } from "@/src/components/ui/date-picker";
+import { DocumentUploadField } from "@/src/components/ui/document-upload-field";
+import { Pill, type PillTone } from "@/src/components/ui/pill";
+import { SearchInput } from "@/src/components/ui/search-input";
+import { SecondaryButton } from "@/src/components/ui/secondary-button";
+import { SelectField } from "@/src/components/ui/select-field";
+import { StatusBadge } from "@/src/components/ui/status-badge";
+import { TableCard } from "@/src/components/ui/table-card";
+import { TextareaField } from "@/src/components/ui/textarea-field";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
 import { attendanceHistory, type AttendanceStatus } from "../data/attendance";
 import { getClassOptions, statusOptions, type ClassFilter, type ModuleFilter, type StatusFilter } from "../data/filters";
 import { students } from "../data/students";
 import { StudentAttendanceHistoryView, type StudentAttendanceHistoryRecordView } from "./StudentAttendanceHistoryView";
 
-type FilterButtonProps = {
-  label: string;
-};
 type StudentSortKey = "name" | "status" | "contact" | "module" | "className";
 
 type StudentStatus = "Ativo" | "Inativo" | "Trancamento";
-type StudentTone = "violet" | "orange" | "blue" | "pink";
 type DrawerTab = "personal" | "contact" | "address" | "attachments" | "frequency";
 type FrequencyRecord = StudentAttendanceHistoryRecordView;
 type JustificationType = "Atestado médico" | "Declaração" | "Outro";
@@ -402,34 +410,6 @@ function formatBytesToReadableSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function FilterButton({ label }: FilterButtonProps) {
-  return (
-    <button className="filter-button" type="button">
-      <span>{label}</span>
-      <ChevronDown aria-hidden="true" />
-    </button>
-  );
-}
-
-function StatusBadge({ status }: { status: StudentStatus }) {
-  const tone = status === "Ativo" ? "success" : "error";
-
-  return (
-    <Badge className={`status-badge status-badge--${tone}`} variant={tone}>
-      <span className="status-badge__dot" aria-hidden="true" />
-      {status}
-    </Badge>
-  );
-}
-
-function Pill({ label, tone }: { label: string; tone: StudentTone }) {
-  return (
-    <Badge className={`pill pill--${tone}`} variant={tone}>
-      {label}
-    </Badge>
-  );
-}
-
 function DrawerField({ label, value }: { label: string; value: string }) {
   return (
     <div className="student-field">
@@ -458,7 +438,7 @@ function ContactLinkRow({ label, value, href }: { label: string; value: string; 
 
 function AddressContent({ student }: { student: StudentRecord }) {
   return (
-    <section className="student-card student-card--address">
+    <Card className="student-card student-card--address">
       <div className="address-grid address-grid--split">
         <DrawerField label="CEP" value={student.details.address.zipCode} />
         <DrawerField label="Número" value={student.details.address.number} />
@@ -470,7 +450,7 @@ function AddressContent({ student }: { student: StudentRecord }) {
         <DrawerField label="Cidade" value={student.details.address.city} />
         <DrawerField label="Estado" value={student.details.address.state} />
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -478,115 +458,27 @@ function AttachmentIcon({
   name,
   className
 }: {
-  name: "file" | "calendar" | "upload" | "plus" | "view" | "download" | "trash" | "chevron";
+  name: "file" | "calendar" | "upload" | "plus" | "view" | "download" | "trash";
   className?: string;
 }) {
-  const sharedProps = {
-    className,
-    viewBox: "0 0 20 20",
-    fill: "none",
-    "aria-hidden": true as const
-  };
-
   switch (name) {
     case "file":
-      return (
-        <svg {...sharedProps}>
-          <path
-            d="M11.667 1.667H5.833A1.667 1.667 0 0 0 4.167 3.333v13.334a1.667 1.667 0 0 0 1.666 1.666h8.334a1.667 1.667 0 0 0 1.666-1.666V6.667l-4.166-5Z"
-            stroke="currentColor"
-            strokeWidth="1.67"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path d="M11.667 1.667v5h4.166" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
+      return <FileText className={className} aria-hidden="true" />;
     case "calendar":
-      return (
-        <svg {...sharedProps}>
-          <path
-            d="M6.667 1.667v3.333M13.333 1.667v3.333M2.917 8.333h14.166M4.583 3.333h10.834a1.667 1.667 0 0 1 1.666 1.667v10.833a1.667 1.667 0 0 1-1.666 1.667H4.583a1.667 1.667 0 0 1-1.666-1.667V5A1.667 1.667 0 0 1 4.583 3.333Z"
-            stroke="currentColor"
-            strokeWidth="1.67"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
+      return <CalendarDays className={className} aria-hidden="true" />;
     case "upload":
-      return (
-        <svg {...sharedProps}>
-          <path d="M10 12.5v-7.5M10 5 6.667 8.333M10 5l3.333 3.333M3.333 15.833h13.334" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
+      return <Upload className={className} aria-hidden="true" />;
     case "plus":
-      return (
-        <svg {...sharedProps}>
-          <path d="M10 4.167v11.666M4.167 10h11.666" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
+      return <Plus className={className} aria-hidden="true" />;
     case "view":
-      return (
-        <svg {...sharedProps}>
-          <path
-            d="M1.667 10s3.03-5 8.333-5c5.304 0 8.333 5 8.333 5s-3.03 5-8.333 5c-5.304 0-8.333-5-8.333-5Z"
-            stroke="currentColor"
-            strokeWidth="1.67"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
+      return <Eye className={className} aria-hidden="true" />;
     case "download":
-      return (
-        <svg {...sharedProps}>
-          <path d="M10 4.167v7.5M10 11.667l3.333-3.334M10 11.667 6.667 8.333M3.333 15.833h13.334" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
+      return <Download className={className} aria-hidden="true" />;
     case "trash":
-      return (
-        <svg {...sharedProps}>
-          <path
-            d="M2.5 5h15M7.5 1.667h5l.833 1.666h3.334v1.667H3.333V3.333h3.334L7.5 1.667Zm.833 6.666v5M10 8.333v5m1.667-5v5M5.833 5h8.334l-.834 11.667H6.667L5.833 5Z"
-            stroke="currentColor"
-            strokeWidth="1.67"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "chevron":
-      return (
-        <svg {...sharedProps}>
-          <path d="m7.5 5 5 5-5 5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
+      return <Trash2 className={className} aria-hidden="true" />;
     default:
       return null;
   }
-}
-
-function AttachmentSectionHeader({
-  title,
-  badge,
-  iconName
-}: {
-  title: string;
-  badge?: number;
-  iconName: "file" | "calendar";
-}) {
-  return (
-    <div className="attachment-section__header">
-      <div className="attachment-section__title-group">
-        <AttachmentIcon name={iconName} className="attachment-symbol attachment-symbol--section" />
-        <h3 className="attachment-section__title">{title}</h3>
-        {typeof badge === "number" ? <span className="attachment-section__badge">{badge}</span> : null}
-      </div>
-      <AttachmentIcon name="chevron" className="attachment-chevron" />
-    </div>
-  );
 }
 
 function AttachmentActionButton({
@@ -599,10 +491,9 @@ function AttachmentActionButton({
   onClick?: () => void;
 }) {
   return (
-    <button className="attachment-action-button" type="button" onClick={onClick}>
-      <AttachmentIcon name={iconName} className="attachment-symbol attachment-symbol--action" />
-      <span>{label}</span>
-    </button>
+    <SecondaryButton className="attachment-action-button" icon={<AttachmentIcon name={iconName} className="attachment-symbol attachment-symbol--action" />} onClick={onClick}>
+      {label}
+    </SecondaryButton>
   );
 }
 
@@ -610,14 +501,18 @@ function FrequencyStatusBadge({ status }: { status: AttendanceStatus }) {
   const tone = status === "Presente" ? "success" : "error";
 
   return (
-    <span className={`frequency-status-badge frequency-status-badge--${tone}`}>
-      <FrequencyIcon name={tone === "success" ? "check-circle" : "alert-circle"} />
-      <span>{status}</span>
-    </span>
+    <Badge
+      className={`frequency-status-badge frequency-status-badge--${tone}`}
+      variant={tone}
+      appearance="icon"
+      icon={tone === "success" ? <CheckCircle2 /> : <AlertCircle />}
+    >
+      {status}
+    </Badge>
   );
 }
 
-function FrequencyIcon({ name }: { name: "calendar" | "check-circle" | "alert-circle" | "chevron-down" }) {
+function FrequencyIcon({ name }: { name: "calendar" | "chevron-down" }) {
   const sharedProps = {
     viewBox: "0 0 20 20",
     fill: "none",
@@ -630,31 +525,6 @@ function FrequencyIcon({ name }: { name: "calendar" | "check-circle" | "alert-ci
         <svg {...sharedProps}>
           <path
             d="M6.667 1.667v3.333M13.333 1.667v3.333M2.917 8.333h14.166M4.583 3.333h10.834a1.667 1.667 0 0 1 1.666 1.667v10.833a1.667 1.667 0 0 1-1.666 1.667H4.583a1.667 1.667 0 0 1-1.666-1.667V5A1.667 1.667 0 0 1 4.583 3.333Z"
-            stroke="currentColor"
-            strokeWidth="1.67"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "check-circle":
-      return (
-        <svg {...sharedProps}>
-          <path
-            d="M18.333 9.233v.767A8.333 8.333 0 1 1 13.392 2.39"
-            stroke="currentColor"
-            strokeWidth="1.67"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path d="m18.333 3.333-8.333 8.342-2.5-2.5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "alert-circle":
-      return (
-        <svg {...sharedProps}>
-          <path
-            d="M10 6.667V10m0 3.333h.008M18.333 10A8.333 8.333 0 1 1 1.667 10a8.333 8.333 0 0 1 16.666 0Z"
             stroke="currentColor"
             strokeWidth="1.67"
             strokeLinecap="round"
@@ -683,7 +553,7 @@ function FrequencyTabContent({
   const recentRecords = student.attendance.slice(0, 1);
 
   return (
-    <section className="student-card student-card--frequency">
+    <Card className="student-card student-card--frequency">
       <div className="frequency-card__header">
         <h3 className="student-card__title">Histórico Recente</h3>
         <p className="frequency-card__description">Últimas {student.attendance.length} ocorrências de presença</p>
@@ -723,7 +593,7 @@ function FrequencyTabContent({
           Ver histórico completo ({student.attendance.length} {student.attendance.length === 1 ? "registro" : "registros"})
         </button>
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -734,7 +604,7 @@ function AttachmentFileItem() {
         <AttachmentIcon name="file" className="attachment-symbol attachment-symbol--file-item" />
         <div className="attachment-file__text">
           <strong>RG_Ana_Carolina_Souza.pdf</strong>
-          <span>1.0 KB Ã¢â‚¬Â¢ 18/01/2024</span>
+          <span>1.0 KB - 18/01/2024</span>
         </div>
       </div>
 
@@ -763,11 +633,14 @@ function EmptyAttachmentState() {
 }
 
 function JustificationStatusBadge({ status }: { status: JustificationStatus }) {
+  const tone = justificationStatusTone[status];
+  const icon =
+    status === "Aprovada" ? <CheckCircle2 /> : status === "Rejeitada" ? <AlertCircle /> : <Clock3 />;
+
   return (
-    <span className={`justification-status-badge justification-status-badge--${justificationStatusTone[status]}`}>
-      <Clock3 aria-hidden="true" />
+    <Badge className={`justification-status-badge justification-status-badge--${tone}`} variant={tone} appearance="icon" icon={icon}>
       {status}
-    </span>
+    </Badge>
   );
 }
 
@@ -868,84 +741,52 @@ function StudentJustificationModal({
 
         <form className="justification-modal__form" onSubmit={onSubmit}>
           <div className="justification-modal__fields">
-            <label className="justification-modal__field">
-              <span>Data da aula *</span>
-              <input
-                type="date"
-                value={form.classDate}
-                onChange={(event) => onFieldChange("classDate", event.target.value)}
-                required
-              />
-            </label>
+            <DatePicker
+              label="Data da aula *"
+              value={form.classDate}
+              onChange={(event) => onFieldChange("classDate", event.target.value)}
+              required
+              wrapperClassName="justification-modal__field"
+            />
 
-            <label className="justification-modal__field justification-modal__field--select">
-              <span>Tipo de justificativa</span>
-              <select value={form.type} onChange={(event) => onFieldChange("type", event.target.value)} required>
-                {justificationTypeOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown aria-hidden="true" />
-            </label>
+            <SelectField
+              label="Tipo de justificativa"
+              variant="form"
+              ariaLabel="Tipo de justificativa"
+              value={form.type}
+              options={justificationTypeOptions.map((option) => ({ value: option, label: option }))}
+              onChange={(event) => onFieldChange("type", event.target.value)}
+              fieldClassName="justification-modal__field"
+              required
+            />
 
-            <label className="justification-modal__field justification-modal__field--select">
-              <span>Status</span>
-              <select value={form.status} onChange={(event) => onFieldChange("status", event.target.value)} required>
-                {justificationStatusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown aria-hidden="true" />
-            </label>
+            <SelectField
+              label="Status"
+              variant="form"
+              ariaLabel="Status"
+              value={form.status}
+              options={justificationStatusOptions.map((option) => ({ value: option, label: option }))}
+              onChange={(event) => onFieldChange("status", event.target.value)}
+              fieldClassName="justification-modal__field"
+              required
+            />
 
-            <label className="justification-modal__field">
-              <span>Observação</span>
-              <textarea
-                rows={4}
-                placeholder="Adicione observações sobre a justificativa..."
-                value={form.note}
-                onChange={(event) => onFieldChange("note", event.target.value)}
-              />
-            </label>
+            <TextareaField
+              label="Observação"
+              rows={4}
+              placeholder="Adicione observações sobre a justificativa..."
+              value={form.note}
+              onChange={(event) => onFieldChange("note", event.target.value)}
+              wrapperClassName="justification-modal__field"
+            />
 
-            <div className="justification-modal__field">
-              <span>Documento (opcional)</span>
-              {selectedFile ? (
-                <div className="justification-modal__upload justification-modal__upload--attached">
-                  <span className="justification-modal__upload-file-icon" aria-hidden="true">
-                    <FileText />
-                  </span>
-                  <strong>{selectedFile.name}</strong>
-                  <span>{formatBytesToReadableSize(selectedFile.size)}</span>
-                  <button
-                    className="justification-modal__upload-remove"
-                    type="button"
-                    aria-label="Remover documento"
-                    onClick={onFileRemove}
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </button>
-                </div>
-              ) : (
-                <label className="justification-modal__upload">
-                  <input
-                    type="file"
-                    accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
-                    onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
-                  />
-                  <span className="justification-modal__upload-icon" aria-hidden="true">
-                    <AttachmentIcon name="upload" className="attachment-symbol attachment-symbol--action" />
-                  </span>
-                  <strong>Clique ou arraste para enviar</strong>
-                  <span>PDF, PNG, JPG até 10MB</span>
-                </label>
-              )}
-              {fileError ? <small className="justification-modal__field-error">{fileError}</small> : null}
-            </div>
+            <DocumentUploadField
+              label="Documento (opcional)"
+              selectedFile={selectedFile}
+              errorMessage={fileError}
+              onFileChange={onFileChange}
+              onFileRemove={onFileRemove}
+            />
           </div>
 
           <div className="justification-modal__footer">
@@ -977,7 +818,7 @@ function DrawerTabContent({
 }) {
   if (activeTab === "contact") {
     return (
-      <section className="student-card student-card--contact">
+      <Card className="student-card student-card--contact">
         <ContactLinkRow label="Telefone" value={student.details.contact.phone} href={`tel:${student.details.contact.phone}`} />
         <ContactLinkRow label="E-mail" value={student.details.contact.email} href={`mailto:${student.details.contact.email}`} />
         <ContactLinkRow
@@ -985,7 +826,7 @@ function DrawerTabContent({
           value={student.details.contact.schoolEmail}
           href={`mailto:${student.details.contact.schoolEmail}`}
         />
-      </section>
+      </Card>
     );
   }
 
@@ -996,16 +837,23 @@ function DrawerTabContent({
   if (activeTab === "attachments") {
     return (
       <>
-        <section className="student-card student-card--attachments">
-          <AttachmentSectionHeader title="Documentos Pessoais" badge={1} iconName="file" />
+        <CollapsibleCard
+          className="student-card student-card--attachments"
+          title="Documentos Pessoais"
+          icon={<AttachmentIcon name="file" className="attachment-symbol attachment-symbol--section" />}
+          badge={1}
+        >
           <div className="attachment-section__body">
             <AttachmentActionButton label="Adicionar documento" iconName="upload" />
             <AttachmentFileItem />
           </div>
-        </section>
+        </CollapsibleCard>
 
-        <section className="student-card student-card--attachments">
-          <AttachmentSectionHeader title="Justificativas de Faltas" iconName="calendar" />
+        <CollapsibleCard
+          className="student-card student-card--attachments"
+          title="Justificativas de Faltas"
+          icon={<AttachmentIcon name="calendar" className="attachment-symbol attachment-symbol--section" />}
+        >
           <div className="attachment-section__body">
             <AttachmentActionButton label="Adicionar justificativa" iconName="plus" onClick={onOpenJustificationModal} />
             {justificationRecords.length > 0 ? (
@@ -1018,7 +866,7 @@ function DrawerTabContent({
               <EmptyAttachmentState />
             )}
           </div>
-        </section>
+        </CollapsibleCard>
       </>
     );
   }
@@ -1029,7 +877,7 @@ function DrawerTabContent({
 
   return (
     <>
-      <section className="student-card">
+      <Card className="student-card">
         <div className="student-card__grid student-card__grid--personal">
           <div className="student-field student-field--full">
             <span className="student-field__label">Nome completo</span>
@@ -1041,29 +889,29 @@ function DrawerTabContent({
           <DrawerField label="Estado civil" value={student.details.maritalStatus} />
           <DrawerField label="Nacionalidade" value={student.details.nationality} />
         </div>
-      </section>
+      </Card>
 
-      <section className="student-card">
+      <Card className="student-card">
         <h3 className="student-card__title">Informações Familiares</h3>
         <div className="student-card__stack">
           <DrawerField label="Nome do pai" value={student.details.fatherName} />
           <DrawerField label="Nome da mãe" value={student.details.motherName} />
         </div>
-      </section>
+      </Card>
 
-      <section className="student-card">
+      <Card className="student-card">
         <h3 className="student-card__title">Módulo e Turma</h3>
         <div className="student-card__stack">
           <div className="student-field">
             <span className="student-field__label">Módulo</span>
-            <Pill label={student.module} tone={student.moduleTone as StudentTone} />
+            <Pill label={student.module} tone={student.moduleTone as PillTone} />
           </div>
           <div className="student-field">
             <span className="student-field__label">Turma</span>
-            <Pill label={student.className} tone={student.classTone as StudentTone} />
+            <Pill label={student.className} tone={student.classTone as PillTone} />
           </div>
         </div>
-      </section>
+      </Card>
     </>
   );
 }
@@ -1117,28 +965,26 @@ function StudentDrawer({
             </div>
           </div>
 
-          <button className="student-drawer__close" type="button" aria-label="Fechar painel" onClick={onClose}>
-            ×
-          </button>
+          <IconButton className="student-drawer__close" icon={<X aria-hidden="true" />} label="Fechar painel" onClick={onClose} />
         </header>
 
         <div className="student-drawer__actions">
-          <button className="student-drawer__edit" type="button">
-            Editar aluno
-          </button>
+          <Button className="student-drawer__edit">Editar aluno</Button>
 
-          <button className="student-drawer__delete" type="button" aria-label={`Excluir ${student.name}`}>
-            <Trash2 aria-hidden="true" />
-          </button>
+          <IconButton
+            className="student-drawer__delete"
+            icon={<Trash2 aria-hidden="true" />}
+            label={`Excluir ${student.name}`}
+          />
         </div>
         <Tabs
           className="student-drawer__tabs-shell"
           value={activeTab}
           onValueChange={(value) => onTabChange(value as DrawerTab)}
         >
-          <TabsList className="student-drawer__tabs" aria-label="Seções do aluno">
+          <TabsList className="student-drawer__tabs" variant="drawer" aria-label="Seções do aluno">
             {drawerTabs.map((tab) => (
-              <TabsTrigger key={tab.id} className="student-drawer__tab" value={tab.id}>
+              <TabsTrigger key={tab.id} className="student-drawer__tab" value={tab.id} variant="drawer">
                 {tab.label}
                 {tab.id === "attachments" ? (
                   <span className="student-drawer__tab-badge">{student.details.attachmentsCount}</span>
@@ -1445,67 +1291,20 @@ export function StudentsPageDrawer() {
     }
   }, [currentPage, totalPages]);
 
-  const FilterButton = ({ label }: FilterButtonProps) => {
-    if (label.includes("Status")) {
-      return (
-        <label className="filter-button">
-          <select
-            aria-label="Filtrar por status"
-            className="filter-button__select"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-          >
-            {statusOptions.map((option) => (
-              <option key={option} value={option}>
-                {option === "Todos" ? "Filtrar por Status" : option}
-              </option>
-            ))}
-          </select>
-          <ChevronDown aria-hidden="true" />
-        </label>
-      );
-    }
-
-    if (label.includes("Turmas")) {
-      return (
-        <label className="filter-button">
-          <select
-            aria-label="Filtrar por turmas"
-            className="filter-button__select"
-            value={classFilter}
-            onChange={(event) => setClassFilter(event.target.value as ClassFilter)}
-          >
-            {classOptions.map((option) => (
-              <option key={option} value={option}>
-                {option === "Todas" ? "Filtrar por Turmas" : option}
-              </option>
-            ))}
-          </select>
-          <ChevronDown aria-hidden="true" />
-        </label>
-      );
-    }
-
-    return (
-      <label className="filter-button">
-        <select
-          aria-label="Filtrar por módulos"
-          className="filter-button__select"
-          value={moduleFilter}
-          onChange={(event) => {
-            setModuleFilter(event.target.value as ModuleFilter);
-            setClassFilter("Todas");
-          }}
-        >
-          <option value="Todos">Filtrar por Módulos</option>
-          <option value="Módulo I">Módulo I</option>
-          <option value="Módulo II">Módulo II</option>
-          <option value="Módulo III">Módulo III</option>
-        </select>
-        <ChevronDown aria-hidden="true" />
-      </label>
-    );
-  };
+  const moduleFilterOptions = [
+    { value: "Todos", label: "Filtrar por Módulos" },
+    { value: "Módulo I", label: "Módulo I" },
+    { value: "Módulo II", label: "Módulo II" },
+    { value: "Módulo III", label: "Módulo III" }
+  ];
+  const classFilterOptions = classOptions.map((option) => ({
+    value: option,
+    label: option === "Todas" ? "Filtrar por Turmas" : option
+  }));
+  const statusFilterOptions = statusOptions.map((option) => ({
+    value: option,
+    label: option === "Todos" ? "Filtrar por Status" : option
+  }));
 
   return (
     <>
@@ -1528,41 +1327,43 @@ export function StudentsPageDrawer() {
             <p>Gerencie o cadastro completo de alunos.</p>
           </div>
 
-          <button className="primary-button" type="button">
-            <Plus aria-hidden="true" />
-            <span>Adicionar aluno</span>
-          </button>
+          <Button icon={<Plus aria-hidden="true" />}>Adicionar aluno</Button>
         </section>
 
         <section className="filters" aria-label="Busca e filtros">
-          <label className="search-field">
-            <Search aria-hidden="true" />
-            <input
-              type="text"
-              className="search-field__input"
-              placeholder="Buscar por nome, telefone ou email..."
-              aria-label="Buscar por nome, telefone ou email"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
+          <SearchInput
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar por nome, telefone ou email..."
+            ariaLabel="Buscar por nome, telefone ou email"
+          />
 
           <div className="filters__group">
-            <FilterButton label="Filtrar por Módulos" />
-            <FilterButton label="Filtrar por Turmas" />
-            <FilterButton label="Filtrar por Status" />
+            <SelectField
+              ariaLabel="Filtrar por módulos"
+              value={moduleFilter}
+              options={moduleFilterOptions}
+              onChange={(event) => {
+                setModuleFilter(event.target.value as ModuleFilter);
+                setClassFilter("Todas");
+              }}
+            />
+            <SelectField
+              ariaLabel="Filtrar por turmas"
+              value={classFilter}
+              options={classFilterOptions}
+              onChange={(event) => setClassFilter(event.target.value as ClassFilter)}
+            />
+            <SelectField
+              ariaLabel="Filtrar por status"
+              value={statusFilter}
+              options={statusFilterOptions}
+              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+            />
           </div>
         </section>
 
-        <section className="table-card" aria-labelledby="students-title">
-          <header className="table-card__header">
-            <div className="table-card__title">
-              <h2 id="students-title">Alunos</h2>
-              <Badge className="count-badge" variant="violet">
-                {filteredStudents.length} alunos
-              </Badge>
-            </div>
-          </header>
+        <TableCard title="Alunos" titleId="students-title" countLabel={`${filteredStudents.length} alunos`}>
 
           <div className="table-scroll students-table-shell">
             <table className="students-table">
@@ -1672,10 +1473,10 @@ export function StudentsPageDrawer() {
                       </div>
                     </td>
                     <td>
-                      <Pill label={student.module} tone={student.moduleTone as StudentTone} />
+                      <Pill label={student.module} tone={student.moduleTone as PillTone} />
                     </td>
                     <td>
-                      <Pill label={student.className} tone={student.classTone as StudentTone} />
+                      <Pill label={student.className} tone={student.classTone as PillTone} />
                     </td>
                   </tr>
                 ))}
@@ -1721,12 +1522,12 @@ export function StudentsPageDrawer() {
 
                   <div className="students-mobile-card__field">
                     <span>Módulo</span>
-                    <Pill label={student.module} tone={student.moduleTone as StudentTone} />
+                    <Pill label={student.module} tone={student.moduleTone as PillTone} />
                   </div>
 
                   <div className="students-mobile-card__field">
                     <span>Turma</span>
-                    <Pill label={student.className} tone={student.classTone as StudentTone} />
+                    <Pill label={student.className} tone={student.classTone as PillTone} />
                   </div>
                 </div>
               </article>
@@ -1768,7 +1569,7 @@ export function StudentsPageDrawer() {
             </footer>
           ) : null}
 
-        </section>
+        </TableCard>
       </main>
 
       {selectedStudent ? (

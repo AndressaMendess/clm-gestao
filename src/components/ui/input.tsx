@@ -2,21 +2,59 @@ import * as React from "react";
 
 import { cn } from "@/src/lib/utils";
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+type InputHelperTone = "default" | "error" | "success";
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, ...props }, ref) => {
-  return (
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  showLabel?: boolean;
+  helperText?: string;
+  helperTone?: InputHelperTone;
+  fieldClassName?: string;
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  (
+    {
+      className,
+      type,
+      label,
+      showLabel = true,
+      helperText,
+      helperTone = "default",
+      fieldClassName,
+      id,
+      ...props
+    },
+    ref
+  ) => {
+    const generatedId = React.useId();
+    const inputId = id ?? generatedId;
+
+    const input = (
     <input
+        id={inputId}
       type={type}
-      className={cn(
-        "flex h-10 w-full rounded-[var(--radius)] border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50",
-        className,
-      )}
+      className={cn("input-field", className)}
       ref={ref}
       {...props}
     />
-  );
-});
+    );
+
+    if (!label && !helperText) {
+      return input;
+    }
+
+    return (
+      <label className={cn("input-field-wrapper", fieldClassName)} htmlFor={inputId}>
+        {showLabel && label ? <span className="input-field-wrapper__label">{label}</span> : null}
+        {input}
+        {helperText ? (
+          <small className={cn("input-field-wrapper__helper", `is-${helperTone}`)}>{helperText}</small>
+        ) : null}
+      </label>
+    );
+  }
+);
 
 Input.displayName = "Input";
 

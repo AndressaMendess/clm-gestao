@@ -128,9 +128,9 @@
   --color-content-always-light: var(--primitive-gray-50);
   --color-content-always-brand: var(--color-brand-primary-main);
 
-  --color-border-primary: var(--primitive-gray-200);
-  --color-border-secondary: var(--primitive-gray-300);
-  --color-border-tertiary: var(--primitive-gray-400);
+  --color-border-primary: var(--primitive-gray-100);
+  --color-border-secondary: var(--primitive-gray-200);
+  --color-border-tertiary: var(--primitive-gray-300);
 
   --color-button-primary-background-enabled: var(--color-brand-primary-main);
   --color-button-primary-background-hover: var(--color-brand-primary-strong);
@@ -263,6 +263,15 @@
   --color-pill-pink-text: var(--color-accent-pink-content);
   --color-page-shadow: 0 4px 8px -2px rgba(16, 24, 40, 0.1), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
   --color-button-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --color-brand-secondary-gradient-end: #1f617f;
+  --color-brand-primary-gradient-end: #f12c2c;
+  --color-tooltip-surface: #101828;
+  --color-focus-outline-mix: color-mix(in srgb, var(--color-brand-primary-main) 50%, var(--color-content-always-light));
+  --shadow-surface-soft: 0 4px 24px rgba(0, 0, 0, 0.04);
+  --shadow-card-soft: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-table: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --shadow-tooltip: 0 10px 24px rgba(16, 24, 40, 0.18);
+  --shadow-brand-primary-hover: 0 16px 32px rgba(241, 103, 44, 0.18);
 
   --radius-8: 8px;
   --radius-12: 12px;

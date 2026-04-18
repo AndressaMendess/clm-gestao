@@ -1,49 +1,54 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@/src/lib/utils";
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius)] text-sm font-medium transition-colors outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-xs hover:brightness-95",
-        outline:
-          "border border-input bg-background text-secondary-foreground shadow-xs hover:bg-secondary",
-        ghost: "text-secondary-foreground hover:bg-secondary",
-      },
-      size: {
-        default: "h-9 px-3.5 py-2",
-        sm: "h-8 rounded-[calc(var(--radius)-2px)] px-3",
-        icon: "size-9",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
-);
+type ButtonVariant = "primary" | "secondary" | "ghost" | "icon";
+type ButtonSize = "sm" | "md" | "icon";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  children?: ReactNode;
+  icon?: ReactNode;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+};
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, type = "button", ...props }, ref) => {
-    return (
-      <button
-        ref={ref}
-        type={type}
-        className={cn(buttonVariants({ variant, size }), className)}
-        {...props}
-      />
-    );
-  },
-);
+export function Button({
+  children,
+  icon,
+  className,
+  type = "button",
+  variant = "primary",
+  size = variant === "icon" ? "icon" : "md",
+  ...props
+}: ButtonProps) {
+  const isIconOnly = variant === "icon" || size === "icon";
 
-Button.displayName = "Button";
+  return (
+    <button
+      className={cn("button", `button--${variant}`, `button--${size}`, isIconOnly && "button--icon-only", className)}
+      type={type}
+      {...props}
+    >
+      {icon ? <span className="button__icon">{icon}</span> : null}
+      {!isIconOnly && children ? <span className="button__label">{children}</span> : null}
+    </button>
+  );
+}
 
-export { buttonVariants };
+type IconButtonProps = Omit<ButtonProps, "children" | "size" | "variant"> & {
+  icon: ReactNode;
+  label: string;
+};
+
+export function IconButton({ icon, label, className, ...props }: IconButtonProps) {
+  return (
+    <Button
+      aria-label={label}
+      className={cn("icon-button", className)}
+      icon={icon}
+      size="icon"
+      variant="icon"
+      {...props}
+    />
+  );
+}

@@ -1,5 +1,10 @@
 ﻿import { useMemo, useState } from "react";
-import { ArrowLeft, CalendarDays, ChevronDown } from "lucide-react";
+import { AlertCircle, ArrowLeft, CalendarDays, CheckCircle2, ChevronDown } from "lucide-react";
+
+import { Badge } from "@/src/components/ui/badge";
+import { DatePicker } from "@/src/components/ui/date-picker";
+import { SelectField } from "@/src/components/ui/select-field";
+import { TableCard } from "@/src/components/ui/table-card";
 
 type AttendanceHistoryStatus = "Presente" | "Ausente";
 type AttendanceHistorySortKey = "date" | "moduleClass" | "status" | "note";
@@ -38,44 +43,19 @@ function compareStatus(left: AttendanceHistoryStatus, right: AttendanceHistorySt
 }
 
 function AttendanceStatusBadge({ status }: { status: AttendanceHistoryStatus }) {
+  const tone = status === "Presente" ? "success" : "error";
+
   return (
-    <span
+    <Badge
       className={`student-attendance-history__status-badge student-attendance-history__status-badge--${
         status === "Presente" ? "present" : "absent"
       }`}
+      variant={tone}
+      appearance="icon"
+      icon={status === "Presente" ? <CheckCircle2 /> : <AlertCircle />}
     >
-      <span className="student-attendance-history__status-icon" aria-hidden="true">
-        {status === "Presente" ? (
-          <svg viewBox="0 0 20 20" fill="none">
-            <path
-              d="M18.333 9.233v.767A8.333 8.333 0 1 1 13.392 2.39"
-              stroke="currentColor"
-              strokeWidth="1.67"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="m18.333 3.333-8.333 8.342-2.5-2.5"
-              stroke="currentColor"
-              strokeWidth="1.67"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 20 20" fill="none">
-            <path
-              d="M10 6.667V10m0 3.333h.008M18.333 10A8.333 8.333 0 1 1 1.667 10a8.333 8.333 0 0 1 16.666 0Z"
-              stroke="currentColor"
-              strokeWidth="1.67"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-      </span>
-      <span>{status}</span>
-    </span>
+      {status}
+    </Badge>
   );
 }
 
@@ -143,6 +123,12 @@ export function StudentAttendanceHistoryView({
     setSortDirection(nextKey === "date" ? "desc" : "asc");
   }
 
+  const statusOptions = [
+    { value: "Todos", label: "Todos" },
+    { value: "Presente", label: "Presente" },
+    { value: "Ausente", label: "Ausente" }
+  ];
+
   return (
     <main className="students-page student-attendance-history-page">
       <section className="student-attendance-history-page__header">
@@ -162,35 +148,37 @@ export function StudentAttendanceHistoryView({
       </section>
 
       <section className="student-attendance-history-page__filters" aria-label="Filtros do histórico de frequência">
-        <label className="student-attendance-history-page__field">
-          <span>Data inicial</span>
-          <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-        </label>
+        <DatePicker
+          label="Data inicial"
+          value={startDate}
+          onChange={(event) => setStartDate(event.target.value)}
+          wrapperClassName="student-attendance-history-page__field"
+        />
 
-        <label className="student-attendance-history-page__field">
-          <span>Data final</span>
-          <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
-        </label>
+        <DatePicker
+          label="Data final"
+          value={endDate}
+          onChange={(event) => setEndDate(event.target.value)}
+          wrapperClassName="student-attendance-history-page__field"
+        />
 
-        <label className="student-attendance-history-page__field student-attendance-history-page__field--select">
-          <span>Status</span>
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as "Todos" | AttendanceHistoryStatus)}
-          >
-            <option value="Todos">Todos</option>
-            <option value="Presente">Presente</option>
-            <option value="Ausente">Ausente</option>
-          </select>
-          <ChevronDown aria-hidden="true" />
-        </label>
+        <SelectField
+          label="Status"
+          variant="form"
+          ariaLabel="Filtrar por status"
+          value={statusFilter}
+          options={statusOptions}
+          onChange={(event) => setStatusFilter(event.target.value as "Todos" | AttendanceHistoryStatus)}
+          fieldClassName="student-attendance-history-page__field"
+        />
       </section>
 
-      <section className="student-attendance-history-table-card" aria-labelledby="student-attendance-history-title">
-        <h2 id="student-attendance-history-title" className="sr-only">
-          Registros de frequência de {studentName}
-        </h2>
-
+      <TableCard
+        title="Registros de frequência"
+        titleId="student-attendance-history-title"
+        countLabel={formatRecordCount(filteredRecords.length)}
+        className="student-attendance-history-table-card"
+      >
         <div className="student-attendance-history-table">
           <div className="student-attendance-history-table__head">
             <button
@@ -245,8 +233,10 @@ export function StudentAttendanceHistoryView({
             </div>
           )}
         </div>
-      </section>
+      </TableCard>
     </main>
   );
 }
+
+
 

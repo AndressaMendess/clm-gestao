@@ -44,9 +44,7 @@ export default function App() {
       <div className="app-content dashboard-app-content">
         <div className="dashboard-surface">
           <TopBar
-            isSidebarCollapsed={isSidebarCollapsed}
             onMenuToggle={() => setIsSidebarOpen((current) => !current)}
-            onSidebarToggle={() => setIsSidebarCollapsed((current) => !current)}
           />
           {activePage === "overview" ? (
             <OverviewPage
