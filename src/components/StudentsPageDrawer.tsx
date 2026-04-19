@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, CalendarDays, CheckCircle2, ChevronDown, Clock3, Download, ExternalLink, Eye, FileText, PenLine, Plus, Trash2, Upload, X } from "lucide-react";
 import type { FormEvent } from "react";
 
@@ -38,6 +38,12 @@ type JustificationRecord = {
   note: string;
   fileName?: string;
   fileSizeLabel?: string;
+  createdAtLabel: string;
+};
+
+type PersonalAttachmentRecord = {
+  id: string;
+  file: File;
   createdAtLabel: string;
 };
 
@@ -341,6 +347,14 @@ const justificationStatusTone: Record<JustificationStatus, "warning" | "success"
   Aprovada: "success",
   Rejeitada: "error"
 };
+const personalDocumentAcceptedExtensions = [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"];
+const personalDocumentAcceptedMimeTypes = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png"
+];
 
 function parseBrazilianDate(value: string) {
   const [day, month, year] = value.split("/").map(Number);
@@ -402,12 +416,31 @@ function formatIsoDateToBrazilianDate(value: string) {
   return `${day}/${month}/${year}`;
 }
 
+function formatBrazilianDateToIso(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const [day, month, year] = value.split("/");
+
+  if (!day || !month || !year) {
+    return value;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 function formatBytesToReadableSize(bytes: number) {
   if (bytes < 1024 * 1024) {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function hasSupportedPersonalDocumentExtension(fileName: string) {
+  const normalizedName = fileName.toLowerCase();
+  return personalDocumentAcceptedExtensions.some((extension) => normalizedName.endsWith(extension));
 }
 
 function DrawerField({ label, value }: { label: string; value: string }) {
@@ -597,27 +630,174 @@ function FrequencyTabContent({
   );
 }
 
-function AttachmentFileItem() {
+function AttachmentFileItem({
+  record,
+  onView,
+  onDownload,
+  onRequestDelete
+}: {
+  record: PersonalAttachmentRecord;
+  onView: (record: PersonalAttachmentRecord) => void;
+  onDownload: (record: PersonalAttachmentRecord) => void;
+  onRequestDelete: (record: PersonalAttachmentRecord) => void;
+}) {
   return (
     <div className="attachment-file">
       <div className="attachment-file__meta">
         <AttachmentIcon name="file" className="attachment-symbol attachment-symbol--file-item" />
         <div className="attachment-file__text">
-          <strong>RG_Ana_Carolina_Souza.pdf</strong>
-          <span>1.0 KB - 18/01/2024</span>
+          <button className="attachment-file__name-button" type="button" onClick={() => onView(record)}>
+            {record.file.name}
+          </button>
+          <span>
+            {formatBytesToReadableSize(record.file.size)} - {record.createdAtLabel}
+          </span>
         </div>
       </div>
 
       <div className="attachment-file__actions">
-        <button className="attachment-icon-button" type="button" aria-label="Visualizar documento">
+        <button className="attachment-icon-button" type="button" aria-label={`Visualizar ${record.file.name}`} onClick={() => onView(record)}>
           <AttachmentIcon name="view" className="attachment-symbol attachment-symbol--icon-button" />
         </button>
-        <button className="attachment-icon-button" type="button" aria-label="Baixar documento">
+        <button className="attachment-icon-button" type="button" aria-label={`Baixar ${record.file.name}`} onClick={() => onDownload(record)}>
           <AttachmentIcon name="download" className="attachment-symbol attachment-symbol--icon-button" />
         </button>
-        <button className="attachment-icon-button" type="button" aria-label="Excluir documento">
+        <button className="attachment-icon-button" type="button" aria-label={`Excluir ${record.file.name}`} onClick={() => onRequestDelete(record)}>
           <AttachmentIcon name="trash" className="attachment-symbol attachment-symbol--icon-button" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyPersonalAttachmentState() {
+  return (
+    <div className="attachment-empty-state">
+      <AttachmentIcon name="file" className="attachment-symbol attachment-symbol--empty-state" />
+      <p>Nenhum documento anexado</p>
+    </div>
+  );
+}
+
+function StudentDocumentUploadModal({
+  isOpen,
+  fileError,
+  onClose,
+  onFileSelected
+}: {
+  isOpen: boolean;
+  fileError: string;
+  onClose: () => void;
+  onFileSelected: (file: File | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const acceptedFilesHint = "PDF, DOC, DOCX, JPG ou PNG (max. 10MB)";
+  const acceptedInput = ".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+
+  return (
+    <div className="justification-modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        className="justification-modal attachment-upload-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="document-upload-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="justification-modal__header">
+          <div className="justification-modal__copy">
+            <h2 id="document-upload-modal-title">Adicionar anexo</h2>
+          </div>
+
+          <button className="justification-modal__close" type="button" aria-label="Fechar modal" onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <div className="attachment-upload-modal__body">
+          <div
+            className="attachment-upload-modal__dropzone"
+            onDragOver={(event) => {
+              event.preventDefault();
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              onFileSelected(event.dataTransfer.files?.[0] ?? null);
+            }}
+          >
+            <input
+              ref={inputRef}
+              type="file"
+              accept={acceptedInput}
+              onChange={(event) => {
+                onFileSelected(event.target.files?.[0] ?? null);
+                event.target.value = "";
+              }}
+            />
+            <span className="attachment-upload-modal__icon" aria-hidden="true">
+              <Upload />
+            </span>
+            <p className="attachment-upload-modal__title">Clique para fazer upload ou arraste e solte</p>
+            <p className="attachment-upload-modal__hint">{acceptedFilesHint}</p>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => {
+                inputRef.current?.click();
+              }}
+            >
+              Selecionar arquivos
+            </Button>
+          </div>
+          {fileError ? <small className="attachment-upload-modal__error">{fileError}</small> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StudentAttachmentDeleteModal({
+  isOpen,
+  attachmentName,
+  onClose,
+  onConfirm
+}: {
+  isOpen: boolean;
+  attachmentName: string;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="justification-modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        className="justification-modal attachment-delete-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="attachment-delete-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="attachment-delete-modal__body">
+          <h2 id="attachment-delete-modal-title">Remover anexo</h2>
+          <p>
+            Tem certeza que deseja remover este anexo? Esta ação não pode ser desfeita.
+          </p>
+          <div className="attachment-delete-modal__actions">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="button" variant="danger" onClick={onConfirm} aria-label={`Remover ${attachmentName}`}>
+              Remover
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -644,7 +824,13 @@ function JustificationStatusBadge({ status }: { status: JustificationStatus }) {
   );
 }
 
-function JustificationRecordItem({ record }: { record: JustificationRecord }) {
+function JustificationRecordItem({
+  record,
+  onEdit
+}: {
+  record: JustificationRecord;
+  onEdit: (record: JustificationRecord) => void;
+}) {
   return (
     <article className="justification-record">
       <div className="justification-record__header">
@@ -674,7 +860,7 @@ function JustificationRecordItem({ record }: { record: JustificationRecord }) {
       </div>
 
       <div className="justification-record__footer">
-        <button className="justification-record__button justification-record__button--secondary" type="button">
+        <button className="justification-record__button justification-record__button--secondary" type="button" onClick={() => onEdit(record)}>
           <PenLine aria-hidden="true" />
           <span>Editar</span>
         </button>
@@ -692,7 +878,9 @@ function StudentJustificationModal({
   studentName,
   form,
   selectedFile,
+  persistedFile,
   fileError,
+  mode,
   onClose,
   onSubmit,
   onFieldChange,
@@ -708,7 +896,12 @@ function StudentJustificationModal({
     note: string;
   };
   selectedFile: File | null;
+  persistedFile: {
+    name: string;
+    sizeLabel?: string;
+  } | null;
   fileError: string;
+  mode: "create" | "edit";
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onFieldChange: (field: "classDate" | "type" | "status" | "note", value: string) => void;
@@ -730,8 +923,12 @@ function StudentJustificationModal({
       >
         <div className="justification-modal__header">
           <div className="justification-modal__copy">
-            <h2 id="justification-modal-title">Adicionar justificativa</h2>
-            <p>Registre uma justificativa de falta para o aluno {studentName}.</p>
+            <h2 id="justification-modal-title">{mode === "edit" ? "Editar justificativa" : "Adicionar justificativa"}</h2>
+            <p>
+              {mode === "edit"
+                ? `Atualize os dados da justificativa de falta de ${studentName}.`
+                : `Registre uma justificativa de falta para o aluno ${studentName}.`}
+            </p>
           </div>
 
           <button className="justification-modal__close" type="button" aria-label="Fechar modal" onClick={onClose}>
@@ -783,6 +980,7 @@ function StudentJustificationModal({
             <DocumentUploadField
               label="Documento (opcional)"
               selectedFile={selectedFile}
+              persistedFile={persistedFile}
               errorMessage={fileError}
               onFileChange={onFileChange}
               onFileRemove={onFileRemove}
@@ -790,12 +988,12 @@ function StudentJustificationModal({
           </div>
 
           <div className="justification-modal__footer">
-            <button className="justification-modal__button justification-modal__button--ghost" type="button" onClick={onClose}>
+            <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
-            </button>
-            <button className="justification-modal__button justification-modal__button--primary" type="submit">
-              Salvar justificativa
-            </button>
+            </Button>
+            <Button type="submit" variant="primary">
+              {mode === "edit" ? "Salvar alterações" : "Salvar justificativa"}
+            </Button>
           </div>
         </form>
       </div>
@@ -807,13 +1005,25 @@ function DrawerTabContent({
   student,
   activeTab,
   onOpenFullHistory,
+  onOpenDocumentUploadModal,
+  personalAttachments,
+  onViewPersonalAttachment,
+  onDownloadPersonalAttachment,
+  onRequestDeletePersonalAttachment,
   onOpenJustificationModal,
+  onEditJustification,
   justificationRecords
 }: {
   student: StudentRecord;
   activeTab: DrawerTab;
   onOpenFullHistory: () => void;
+  onOpenDocumentUploadModal: () => void;
+  personalAttachments: PersonalAttachmentRecord[];
+  onViewPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onDownloadPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onRequestDeletePersonalAttachment: (record: PersonalAttachmentRecord) => void;
   onOpenJustificationModal: () => void;
+  onEditJustification: (record: JustificationRecord) => void;
   justificationRecords: JustificationRecord[];
 }) {
   if (activeTab === "contact") {
@@ -841,11 +1051,25 @@ function DrawerTabContent({
           className="student-card student-card--attachments"
           title="Documentos Pessoais"
           icon={<AttachmentIcon name="file" className="attachment-symbol attachment-symbol--section" />}
-          badge={1}
+          badge={personalAttachments.length}
         >
           <div className="attachment-section__body">
-            <AttachmentActionButton label="Adicionar documento" iconName="upload" />
-            <AttachmentFileItem />
+            <AttachmentActionButton label="Adicionar documento" iconName="upload" onClick={onOpenDocumentUploadModal} />
+            {personalAttachments.length > 0 ? (
+              <div className="attachment-files">
+                {personalAttachments.map((record) => (
+                  <AttachmentFileItem
+                    key={record.id}
+                    record={record}
+                    onView={onViewPersonalAttachment}
+                    onDownload={onDownloadPersonalAttachment}
+                    onRequestDelete={onRequestDeletePersonalAttachment}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyPersonalAttachmentState />
+            )}
           </div>
         </CollapsibleCard>
 
@@ -859,7 +1083,7 @@ function DrawerTabContent({
             {justificationRecords.length > 0 ? (
               <div className="justification-records">
                 {justificationRecords.map((record) => (
-                  <JustificationRecordItem key={record.id} record={record} />
+                  <JustificationRecordItem key={record.id} record={record} onEdit={onEditJustification} />
                 ))}
               </div>
             ) : (
@@ -922,7 +1146,13 @@ function StudentDrawer({
   onTabChange,
   onClose,
   onOpenFullHistory,
+  onOpenDocumentUploadModal,
+  personalAttachments,
+  onViewPersonalAttachment,
+  onDownloadPersonalAttachment,
+  onRequestDeletePersonalAttachment,
   onOpenJustificationModal,
+  onEditJustification,
   justificationRecords
 }: {
   student: StudentRecord;
@@ -930,7 +1160,13 @@ function StudentDrawer({
   onTabChange: (tab: DrawerTab) => void;
   onClose: () => void;
   onOpenFullHistory: () => void;
+  onOpenDocumentUploadModal: () => void;
+  personalAttachments: PersonalAttachmentRecord[];
+  onViewPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onDownloadPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onRequestDeletePersonalAttachment: (record: PersonalAttachmentRecord) => void;
   onOpenJustificationModal: () => void;
+  onEditJustification: (record: JustificationRecord) => void;
   justificationRecords: JustificationRecord[];
 }) {
   const initials =
@@ -1000,7 +1236,13 @@ function StudentDrawer({
                   student={student}
                   activeTab={tab.id}
                   onOpenFullHistory={onOpenFullHistory}
+                  onOpenDocumentUploadModal={onOpenDocumentUploadModal}
+                  personalAttachments={personalAttachments}
+                  onViewPersonalAttachment={onViewPersonalAttachment}
+                  onDownloadPersonalAttachment={onDownloadPersonalAttachment}
+                  onRequestDeletePersonalAttachment={onRequestDeletePersonalAttachment}
                   onOpenJustificationModal={onOpenJustificationModal}
+                  onEditJustification={onEditJustification}
                   justificationRecords={justificationRecords}
                 />
               </TabsContent>
@@ -1025,8 +1267,15 @@ export function StudentsPageDrawer() {
   const [studentSortDirection, setStudentSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDrawerClosing, setIsDrawerClosing] = useState(false);
+  const [isDocumentUploadModalOpen, setIsDocumentUploadModalOpen] = useState(false);
+  const [documentUploadError, setDocumentUploadError] = useState("");
+  const [personalAttachmentsByStudent, setPersonalAttachmentsByStudent] = useState<Record<number, PersonalAttachmentRecord[]>>({});
+  const [attachmentPendingDelete, setAttachmentPendingDelete] = useState<PersonalAttachmentRecord | null>(null);
   const [isJustificationModalOpen, setIsJustificationModalOpen] = useState(false);
+  const [justificationModalMode, setJustificationModalMode] = useState<"create" | "edit">("create");
+  const [editingJustificationId, setEditingJustificationId] = useState<string | null>(null);
   const [selectedJustificationFile, setSelectedJustificationFile] = useState<File | null>(null);
+  const [persistedJustificationFile, setPersistedJustificationFile] = useState<{ name: string; sizeLabel?: string } | null>(null);
   const [justificationFileError, setJustificationFileError] = useState("");
   const [justificationRecordsByStudent, setJustificationRecordsByStudent] = useState<Record<number, JustificationRecord[]>>({});
   const [justificationForm, setJustificationForm] = useState<{
@@ -1042,6 +1291,8 @@ export function StudentsPageDrawer() {
   });
 
   const closeDrawer = () => {
+    closeAttachmentDeleteModal();
+    closeDocumentUploadModal();
     closeJustificationModal();
     setIsDrawerClosing(true);
     window.setTimeout(() => {
@@ -1067,7 +1318,8 @@ export function StudentsPageDrawer() {
   }, [selectedStudent]);
 
   useEffect(() => {
-    if (!isJustificationModalOpen) {
+    const isAnyModalOpen = Boolean(attachmentPendingDelete) || isDocumentUploadModalOpen || isJustificationModalOpen;
+    if (!isAnyModalOpen) {
       return undefined;
     }
 
@@ -1076,6 +1328,16 @@ export function StudentsPageDrawer() {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (attachmentPendingDelete) {
+          closeAttachmentDeleteModal();
+          return;
+        }
+
+        if (isDocumentUploadModalOpen) {
+          closeDocumentUploadModal();
+          return;
+        }
+
         closeJustificationModal();
       }
     };
@@ -1086,10 +1348,82 @@ export function StudentsPageDrawer() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isJustificationModalOpen]);
+  }, [attachmentPendingDelete, isDocumentUploadModalOpen, isJustificationModalOpen]);
 
   const classOptions = useMemo(() => getClassOptions(moduleFilter), [moduleFilter]);
+  const selectedStudentAttachments = selectedStudent ? personalAttachmentsByStudent[selectedStudent.id] ?? [] : [];
   const selectedStudentJustifications = selectedStudent ? justificationRecordsByStudent[selectedStudent.id] ?? [] : [];
+
+  function closeDocumentUploadModal() {
+    setIsDocumentUploadModalOpen(false);
+    setDocumentUploadError("");
+  }
+
+  function closeAttachmentDeleteModal() {
+    setAttachmentPendingDelete(null);
+  }
+
+  function handleDocumentFileSelected(file: File | null) {
+    if (!selectedStudent || !file) {
+      return;
+    }
+
+    const isValidType = personalDocumentAcceptedMimeTypes.includes(file.type) || hasSupportedPersonalDocumentExtension(file.name);
+    if (!isValidType) {
+      setDocumentUploadError("Envie um arquivo PDF, DOC, DOCX, JPG ou PNG.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setDocumentUploadError("O arquivo precisa ter no máximo 10MB.");
+      return;
+    }
+
+    const nextRecord: PersonalAttachmentRecord = {
+      id: `${selectedStudent.id}-${Date.now()}`,
+      file,
+      createdAtLabel: new Intl.DateTimeFormat("pt-BR").format(new Date())
+    };
+
+    setPersonalAttachmentsByStudent((current) => ({
+      ...current,
+      [selectedStudent.id]: [nextRecord, ...(current[selectedStudent.id] ?? [])]
+    }));
+    closeDocumentUploadModal();
+  }
+
+  function handleViewPersonalAttachment(record: PersonalAttachmentRecord) {
+    const fileUrl = URL.createObjectURL(record.file);
+    window.open(fileUrl, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+  }
+
+  function handleDownloadPersonalAttachment(record: PersonalAttachmentRecord) {
+    const fileUrl = URL.createObjectURL(record.file);
+    const anchor = document.createElement("a");
+    anchor.href = fileUrl;
+    anchor.download = record.file.name;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(fileUrl);
+  }
+
+  function handleRequestDeletePersonalAttachment(record: PersonalAttachmentRecord) {
+    setAttachmentPendingDelete(record);
+  }
+
+  function handleConfirmDeletePersonalAttachment() {
+    if (!selectedStudent || !attachmentPendingDelete) {
+      return;
+    }
+
+    setPersonalAttachmentsByStudent((current) => ({
+      ...current,
+      [selectedStudent.id]: (current[selectedStudent.id] ?? []).filter((record) => record.id !== attachmentPendingDelete.id)
+    }));
+    closeAttachmentDeleteModal();
+  }
 
   function resetJustificationForm() {
     setJustificationForm({
@@ -1098,7 +1432,10 @@ export function StudentsPageDrawer() {
       status: "Pendente",
       note: ""
     });
+    setJustificationModalMode("create");
+    setEditingJustificationId(null);
     setSelectedJustificationFile(null);
+    setPersistedJustificationFile(null);
     setJustificationFileError("");
   }
 
@@ -1137,10 +1474,59 @@ export function StudentsPageDrawer() {
     });
   }
 
+  function handleOpenJustificationEditModal(record: JustificationRecord) {
+    setJustificationModalMode("edit");
+    setEditingJustificationId(record.id);
+    setJustificationForm({
+      classDate: formatBrazilianDateToIso(record.classDate),
+      type: record.type,
+      status: record.status,
+      note: record.note
+    });
+    setSelectedJustificationFile(null);
+    setPersistedJustificationFile(
+      record.fileName
+        ? {
+            name: record.fileName,
+            sizeLabel: record.fileSizeLabel
+          }
+        : null
+    );
+    setJustificationFileError("");
+    setIsJustificationModalOpen(true);
+  }
+
   function handleJustificationSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!selectedStudent || !justificationForm.classDate || justificationFileError) {
+      return;
+    }
+
+    if (justificationModalMode === "edit" && editingJustificationId) {
+      const nextFileName = selectedJustificationFile?.name ?? persistedJustificationFile?.name;
+      const nextFileSizeLabel = selectedJustificationFile
+        ? formatBytesToReadableSize(selectedJustificationFile.size)
+        : persistedJustificationFile?.sizeLabel;
+
+      setJustificationRecordsByStudent((current) => ({
+        ...current,
+        [selectedStudent.id]: (current[selectedStudent.id] ?? []).map((record) =>
+          record.id === editingJustificationId
+            ? {
+                ...record,
+                classDate: formatIsoDateToBrazilianDate(justificationForm.classDate),
+                type: justificationForm.type,
+                status: justificationForm.status,
+                note: justificationForm.note.trim(),
+                fileName: nextFileName,
+                fileSizeLabel: nextFileSizeLabel
+              }
+            : record
+        )
+      }));
+
+      closeJustificationModal();
       return;
     }
 
@@ -1184,11 +1570,13 @@ export function StudentsPageDrawer() {
     }
 
     setSelectedJustificationFile(file);
+    setPersistedJustificationFile(null);
     setJustificationFileError("");
   }
 
   function handleJustificationFileRemove() {
     setSelectedJustificationFile(null);
+    setPersistedJustificationFile(null);
     setJustificationFileError("");
   }
 
@@ -1584,13 +1972,38 @@ export function StudentsPageDrawer() {
               setIsDrawerClosing(false);
             }}
             onClose={closeDrawer}
+            onOpenDocumentUploadModal={() => {
+              setDocumentUploadError("");
+              setIsDocumentUploadModalOpen(true);
+            }}
+            personalAttachments={selectedStudentAttachments}
+            onViewPersonalAttachment={handleViewPersonalAttachment}
+            onDownloadPersonalAttachment={handleDownloadPersonalAttachment}
+            onRequestDeletePersonalAttachment={handleRequestDeletePersonalAttachment}
             onOpenJustificationModal={() => {
               resetJustificationForm();
               setIsJustificationModalOpen(true);
             }}
+            onEditJustification={handleOpenJustificationEditModal}
             justificationRecords={selectedStudentJustifications}
           />
         </div>
+      ) : null}
+      {selectedStudent ? (
+        <StudentAttachmentDeleteModal
+          isOpen={Boolean(attachmentPendingDelete)}
+          attachmentName={attachmentPendingDelete?.file.name ?? "anexo"}
+          onClose={closeAttachmentDeleteModal}
+          onConfirm={handleConfirmDeletePersonalAttachment}
+        />
+      ) : null}
+      {selectedStudent ? (
+        <StudentDocumentUploadModal
+          isOpen={isDocumentUploadModalOpen}
+          fileError={documentUploadError}
+          onClose={closeDocumentUploadModal}
+          onFileSelected={handleDocumentFileSelected}
+        />
       ) : null}
       {selectedStudent ? (
         <StudentJustificationModal
@@ -1598,7 +2011,9 @@ export function StudentsPageDrawer() {
           studentName={selectedStudent.name}
           form={justificationForm}
           selectedFile={selectedJustificationFile}
+          persistedFile={persistedJustificationFile}
           fileError={justificationFileError}
+          mode={justificationModalMode}
           onClose={closeJustificationModal}
           onSubmit={handleJustificationSubmit}
           onFieldChange={handleJustificationFieldChange}
@@ -1611,6 +2026,8 @@ export function StudentsPageDrawer() {
     </>
   );
 }
+
+
 
 
 

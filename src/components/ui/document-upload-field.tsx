@@ -10,6 +10,10 @@ type DocumentUploadFieldProps = {
   hint?: string;
   accept?: string;
   selectedFile: File | null;
+  persistedFile?: {
+    name: string;
+    sizeLabel?: string;
+  } | null;
   errorMessage?: string;
   onFileChange: (file: File | null) => void;
   onFileRemove?: () => void;
@@ -28,11 +32,15 @@ export function DocumentUploadField({
   hint = "PDF, PNG, JPG até 10MB",
   accept = ".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg",
   selectedFile,
+  persistedFile,
   errorMessage,
   onFileChange,
   onFileRemove
 }: DocumentUploadFieldProps) {
-  const variant: DocumentUploadVariant = errorMessage ? "error" : selectedFile ? "success" : "default";
+  const hasAttachedFile = Boolean(selectedFile || persistedFile);
+  const variant: DocumentUploadVariant = errorMessage ? "error" : hasAttachedFile ? "success" : "default";
+  const attachedFileName = selectedFile?.name ?? persistedFile?.name ?? "";
+  const attachedFileSizeLabel = selectedFile ? formatBytes(selectedFile.size) : persistedFile?.sizeLabel ?? "";
 
   const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     onFileChange(event.target.files?.[0] ?? null);
@@ -42,13 +50,13 @@ export function DocumentUploadField({
   return (
     <div className="document-upload-field">
       <span className="document-upload-field__label">{label}</span>
-      {selectedFile ? (
+      {hasAttachedFile ? (
         <div className={cn("document-upload-field__surface", "document-upload-field__surface--attached", `is-${variant}`)}>
           <span className="document-upload-field__file-icon" aria-hidden="true">
             <FileText />
           </span>
-          <strong>{selectedFile.name}</strong>
-          <span>{formatBytes(selectedFile.size)}</span>
+          <strong>{attachedFileName}</strong>
+          <span>{attachedFileSizeLabel}</span>
           {onFileRemove ? (
             <button
               className="document-upload-field__remove"

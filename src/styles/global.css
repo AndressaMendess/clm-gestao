@@ -266,6 +266,12 @@ img { display: block; max-width: 100%; }
   box-shadow: none;
 }
 
+.button--danger {
+  background: var(--feedback-error-background, #fdecec);
+  color: var(--feedback-error-content, #d93b31);
+  box-shadow: none;
+}
+
 .button--icon {
   background: transparent;
   color: #667085;
@@ -1080,6 +1086,12 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   padding: 16px;
 }
 
+.attachment-files {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .attachment-file__meta {
   display: flex;
   align-items: center;
@@ -1102,6 +1114,20 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   letter-spacing: -0.28px;
 }
 
+.attachment-file__name-button {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  color: var(--color-neutral-850);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: -0.28px;
+  text-decoration: underline;
+  text-align: left;
+  cursor: pointer;
+}
+
 .attachment-file__text span {
   color: #667085;
   font-size: 12px;
@@ -1122,6 +1148,124 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   width: 28px;
   height: 28px;
   border-radius: 4px;
+}
+
+.attachment-upload-modal {
+  max-width: 440px;
+}
+
+.attachment-upload-modal__body {
+  padding: 0 24px 24px;
+}
+
+.attachment-upload-modal__dropzone {
+  position: relative;
+  display: flex;
+  min-height: 212px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed #c2c5c8;
+  border-radius: 16px;
+  background: #fafafb;
+  padding: 16px 33px;
+  text-align: center;
+}
+
+.attachment-upload-modal__dropzone input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.attachment-upload-modal__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: #4a4f57;
+}
+
+.attachment-upload-modal__icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.attachment-upload-modal__title {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-body-medium);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  letter-spacing: -0.28px;
+}
+
+.attachment-upload-modal__hint {
+  margin: 0 0 6px;
+  color: #44484d;
+  font-size: var(--text-body-small);
+  line-height: 1.5;
+  letter-spacing: -0.24px;
+}
+
+.attachment-upload-modal__dropzone .button {
+  min-height: 44px;
+}
+
+.attachment-upload-modal__error {
+  display: block;
+  margin-top: 8px;
+  color: #b42318;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.attachment-delete-modal {
+  max-width: 448px;
+}
+
+.attachment-delete-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+}
+
+.attachment-delete-modal__body h2 {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-title-small);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.5;
+  letter-spacing: -0.36px;
+}
+
+.attachment-delete-modal__body p {
+  margin: 0;
+  color: #44484d;
+  font-size: var(--text-body-medium);
+  line-height: 1.5;
+  letter-spacing: -0.28px;
+}
+
+.attachment-delete-modal__actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.attachment-delete-modal__actions .button {
+  flex: 1 0 0;
+  min-height: 44px;
+  padding: 12px 16px;
+}
+
+.attachment-delete-modal__actions .button--ghost {
+  border: 1px solid #d9dbdd;
 }
 
 .attachment-empty-state {
@@ -1762,7 +1906,7 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
 .justification-modal__copy h2 {
   margin: 0;
   color: var(--color-content-primary);
-  font-size: 24px;
+  font-size: var(--text-body-large);
   font-weight: 600;
   line-height: 1.25;
 }
@@ -2131,29 +2275,6 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   padding: 16px 24px 24px;
 }
 
-.justification-modal__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  border-radius: 10px;
-  padding: 0 16px;
-  font-size: var(--text-body-medium);
-  font-weight: var(--font-weight-medium);
-  line-height: 1.43;
-}
-
-.justification-modal__button--ghost {
-  border: 1px solid #d0d5dd;
-  background: var(--color-surface-card);
-  color: #344054;
-}
-
-.justification-modal__button--primary {
-  background: var(--color-brand-orange);
-  color: var(--color-brand-white);
-}
-
 @keyframes drawer-overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -2348,13 +2469,14 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   }
   .justification-modal__header,
   .justification-modal__fields,
+  .attachment-upload-modal__body,
   .justification-modal__footer {
     padding-inline: 16px;
   }
   .justification-modal__footer {
     flex-direction: column-reverse;
   }
-  .justification-modal__button {
+  .justification-modal__footer .button {
     width: 100%;
   }
   .justification-record__footer {

@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@/src/lib/utils";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "icon";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "icon";
 type ButtonSize = "sm" | "md" | "icon";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
