@@ -12,6 +12,7 @@ import {
   FileImage,
   FileText,
   Home,
+  LoaderCircle,
   PenLine,
   Plus,
   Trash2,
@@ -66,6 +67,31 @@ type PersonalAttachmentRecord = {
   id: string;
   file: File;
   createdAtLabel: string;
+};
+
+type ScannedUploadFiles = {
+  enrollmentForm: File | null;
+  identityDocument: File | null;
+  residenceProof: File | null;
+  photo: File | null;
+};
+
+type ScannedReviewDocumentId = keyof ScannedUploadFiles;
+type ScannedEnrollmentForm = {
+  module: string;
+  className: string;
+};
+
+const emptyScannedUploadFiles: ScannedUploadFiles = {
+  enrollmentForm: null,
+  identityDocument: null,
+  residenceProof: null,
+  photo: null
+};
+
+const emptyScannedEnrollmentForm: ScannedEnrollmentForm = {
+  module: "",
+  className: ""
 };
 
 type StudentRecord = (typeof students)[number] & {
@@ -392,6 +418,14 @@ const scannedRegistrationSteps = [
   { id: "confirm", label: "Confirmar" }
 ];
 
+type ExtractionConfidence = "high" | "medium" | "low";
+
+const confidenceBadgeByLevel: Record<ExtractionConfidence, { label: string; variant: "success" | "warning" | "error" }> = {
+  high: { label: "Alta confiança", variant: "success" },
+  medium: { label: "Confiança média", variant: "warning" },
+  low: { label: "Confiança baixa", variant: "error" }
+};
+
 function parseBrazilianDate(value: string) {
   const [day, month, year] = value.split("/").map(Number);
 
@@ -472,6 +506,63 @@ function formatBytesToReadableSize(bytes: number) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function applyPhoneMask(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+  if (digits.length === 0) {
+    return "";
+  }
+  if (digits.length <= 2) {
+    return `(${digits}`;
+  }
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function applyRgMask(value: string) {
+  const digits = onlyDigits(value).slice(0, 9);
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 5) {
+    return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  }
+  if (digits.length <= 8) {
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+  }
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}-${digits.slice(8)}`;
+}
+
+function applyCpfMask(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+  if (digits.length <= 3) {
+    return digits;
+  }
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  }
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  }
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+function applyCepMask(value: string) {
+  const digits = onlyDigits(value).slice(0, 8);
+  if (digits.length <= 5) {
+    return digits;
+  }
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 }
 
 function hasSupportedPersonalDocumentExtension(fileName: string) {
@@ -914,7 +1005,6 @@ function ManualStudentRegistrationModal({
   onClose: () => void;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const onlyDigits = (value: string) => value.replace(/\D/g, "");
   const applyBirthDateMask = (value: string) => {
     const digits = onlyDigits(value).slice(0, 8);
     if (digits.length <= 2) {
@@ -924,55 +1014,6 @@ function ManualStudentRegistrationModal({
       return `${digits.slice(0, 2)}/${digits.slice(2)}`;
     }
     return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-  };
-  const applyPhoneMask = (value: string) => {
-    const digits = onlyDigits(value).slice(0, 11);
-    if (digits.length === 0) {
-      return "";
-    }
-    if (digits.length <= 2) {
-      return `(${digits}`;
-    }
-    if (digits.length <= 6) {
-      return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    }
-    if (digits.length <= 10) {
-      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-    }
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-  };
-  const applyRgMask = (value: string) => {
-    const digits = onlyDigits(value).slice(0, 9);
-    if (digits.length <= 2) {
-      return digits;
-    }
-    if (digits.length <= 5) {
-      return `${digits.slice(0, 2)}.${digits.slice(2)}`;
-    }
-    if (digits.length <= 8) {
-      return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
-    }
-    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}-${digits.slice(8)}`;
-  };
-  const applyCpfMask = (value: string) => {
-    const digits = onlyDigits(value).slice(0, 11);
-    if (digits.length <= 3) {
-      return digits;
-    }
-    if (digits.length <= 6) {
-      return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-    }
-    if (digits.length <= 9) {
-      return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-    }
-    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-  };
-  const applyCepMask = (value: string) => {
-    const digits = onlyDigits(value).slice(0, 8);
-    if (digits.length <= 5) {
-      return digits;
-    }
-    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
   };
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
@@ -1168,6 +1209,7 @@ function ManualStudentRegistrationModal({
           <Button
             type="button"
             variant="ghost"
+            size="sm"
             className="manual-student-modal__cancel"
             onClick={() => {
               if (currentStep === 1) {
@@ -1536,19 +1578,20 @@ function ManualStudentRegistrationModal({
 
 function ScannedStudentRegistrationModal({
   isOpen,
-  onClose
+  onClose,
+  onOpenProcessing,
+  initialUploadFiles = emptyScannedUploadFiles,
+  onUploadFilesChange = () => undefined
 }: {
   isOpen: boolean;
   onClose: () => void;
+  onOpenProcessing: (files: ScannedUploadFiles) => void;
+  initialUploadFiles?: ScannedUploadFiles;
+  onUploadFilesChange?: (files: ScannedUploadFiles) => void;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  const [uploadFiles, setUploadFiles] = useState({
-    enrollmentForm: null as File | null,
-    identityDocument: null as File | null,
-    residenceProof: null as File | null,
-    photo: null as File | null
-  });
+  const [uploadFiles, setUploadFiles] = useState<ScannedUploadFiles>(initialUploadFiles ?? emptyScannedUploadFiles);
 
   useEffect(() => {
     if (!isOpen) {
@@ -1556,13 +1599,16 @@ function ScannedStudentRegistrationModal({
     }
 
     setCurrentStep(1);
-    setUploadFiles({
-      enrollmentForm: null,
-      identityDocument: null,
-      residenceProof: null,
-      photo: null
-    });
+    setUploadFiles(initialUploadFiles ?? emptyScannedUploadFiles);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    onUploadFilesChange(uploadFiles);
+  }, [isOpen, onUploadFilesChange, uploadFiles]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -1617,6 +1663,13 @@ function ScannedStudentRegistrationModal({
     );
   }
 
+  const isStep2Valid = Boolean(
+    uploadFiles.enrollmentForm ||
+      uploadFiles.identityDocument ||
+      uploadFiles.residenceProof ||
+      uploadFiles.photo
+  );
+
   if (!isOpen) {
     return null;
   }
@@ -1640,6 +1693,7 @@ function ScannedStudentRegistrationModal({
           <Button
             type="button"
             variant="ghost"
+            size="sm"
             className="scanned-student-modal__cancel"
             onClick={() => {
               if (currentStep === 1) {
@@ -1657,11 +1711,14 @@ function ScannedStudentRegistrationModal({
             variant="primary"
             size="sm"
             className="scanned-student-modal__continue"
-            disabled={currentStep === 2}
+            disabled={currentStep === 2 && !isStep2Valid}
             onClick={() => {
               if (currentStep === 1) {
                 setCurrentStep(2);
+                return;
               }
+
+              onOpenProcessing(uploadFiles);
             }}
           >
             Continuar
@@ -1816,6 +1873,775 @@ function ScannedStudentRegistrationModal({
           </>
         )}
       </div>
+    </ModalContainer>
+  );
+}
+
+function ScannedDocumentsProcessingModal({
+  isOpen,
+  onClose,
+  onComplete
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onComplete: () => void;
+}) {
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      onComplete();
+    }, 2200);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isOpen, onComplete]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const processedDocuments = [
+    "Formulário de Matrícula",
+    "Documento de Identidade",
+    "Comprovante de Residência",
+    "Foto 3x4"
+  ];
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-processing-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle="Processando documentos..."
+      overlayClassName="scanned-processing-modal-overlay"
+      className="scanned-processing-modal"
+      headerClassName="scanned-processing-modal__header"
+      copyClassName="scanned-processing-modal__copy"
+      closeButtonClassName="scanned-processing-modal__close"
+      bodyClassName="scanned-processing-modal__body"
+    >
+      <section className="scanned-processing-modal__content">
+        <span className="scanned-processing-modal__spinner-shell" aria-hidden="true">
+          <LoaderCircle className="scanned-processing-modal__spinner" />
+        </span>
+
+        <h3>Analisando Documentos</h3>
+        <p>Estamos processando as imagens e extraindo as informações. Isso pode levar alguns segundos.</p>
+
+        <div className="scanned-processing-modal__list">
+          {processedDocuments.map((document) => (
+            <article key={document} className="scanned-processing-modal__item">
+              <div className="scanned-processing-modal__item-info">
+                <CheckCircle2 aria-hidden="true" />
+                <span>{document}</span>
+              </div>
+              <span className="scanned-processing-modal__item-status">Lido com sucesso</span>
+            </article>
+          ))}
+        </div>
+      </section>
+    </ModalContainer>
+  );
+}
+
+function ScannedExtractedDataReviewModal({
+  isOpen,
+  onClose,
+  onContinue,
+  onBack,
+  uploadedFiles
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onContinue: () => void;
+  onBack: () => void;
+  uploadedFiles: ScannedUploadFiles;
+}) {
+  const [selectedDocumentId, setSelectedDocumentId] = useState<ScannedReviewDocumentId>("photo");
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [reviewFormValues, setReviewFormValues] = useState({
+    fullName: "Marina Santos Silva",
+    rg: "12.345.678-9",
+    cpf: "123.456.789-01",
+    maritalStatus: "solteiro",
+    birthDate: "2005-03-14",
+    sex: "feminino",
+    nationality: "Brasileira",
+    phone: "(11) 98765-4321",
+    email: "marina.silva@email.com",
+    street: "Rua das Flores",
+    number: "123",
+    zipCode: "01310-100",
+    neighborhood: "Jardim Paulista",
+    city: "sao-paulo",
+    state: "SP",
+    fatherName: "José Silva",
+    motherName: "Maria Santos Silva"
+  });
+
+  const documents: Array<{ id: ScannedReviewDocumentId; title: string; fallbackFileName: string; icon: ReactNode }> = [
+    { id: "enrollmentForm", title: "Formulário de Matrícula", fallbackFileName: "Sem arquivo anexado", icon: <ClipboardCheck /> },
+    { id: "identityDocument", title: "Documento de Identidade", fallbackFileName: "Sem arquivo anexado", icon: <FileText /> },
+    { id: "residenceProof", title: "Comprovante de Residência", fallbackFileName: "Sem arquivo anexado", icon: <Home /> },
+    { id: "photo", title: "Foto 3x4", fallbackFileName: "Sem arquivo anexado", icon: <FileImage /> }
+  ];
+  const attachedDocuments = useMemo(
+    () => documents.filter((document) => Boolean(uploadedFiles[document.id])),
+    [uploadedFiles]
+  );
+
+  const selectPlaceholder = { value: "", label: "Selecione" };
+  const maritalStatusOptions = [
+    selectPlaceholder,
+    { value: "solteiro", label: "Solteiro(a)" },
+    { value: "casado", label: "Casado(a)" },
+    { value: "divorciado", label: "Divorciado(a)" },
+    { value: "viuvo", label: "Viúvo(a)" }
+  ];
+  const sexOptions = [selectPlaceholder, { value: "feminino", label: "Feminino" }, { value: "masculino", label: "Masculino" }];
+  const cityOptions = [
+    selectPlaceholder,
+    { value: "sao-paulo", label: "São Paulo" },
+    { value: "campinas", label: "Campinas" },
+    { value: "santos", label: "Santos" }
+  ];
+  const stateOptions = [
+    { value: "", label: "Selecione" },
+    { value: "SP", label: "SP" },
+    { value: "RJ", label: "RJ" },
+    { value: "MG", label: "MG" },
+    { value: "BA", label: "BA" }
+  ];
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (attachedDocuments.length === 0) {
+      return;
+    }
+
+    const hasSelectedAttachedDocument = attachedDocuments.some((document) => document.id === selectedDocumentId);
+    if (!hasSelectedAttachedDocument) {
+      setSelectedDocumentId(attachedDocuments[0].id);
+    }
+  }, [attachedDocuments, isOpen, selectedDocumentId]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const selectedFile = uploadedFiles[selectedDocumentId];
+    if (!selectedFile || !selectedFile.type.startsWith("image/")) {
+      setPreviewImageUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreviewImageUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [isOpen, selectedDocumentId, uploadedFiles]);
+
+  function updateField(field: keyof typeof reviewFormValues, value: string) {
+    setReviewFormValues((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  function updateMaskedField(field: keyof typeof reviewFormValues, value: string) {
+    if (field === "rg") {
+      updateField(field, applyRgMask(value));
+      return;
+    }
+
+    if (field === "cpf") {
+      updateField(field, applyCpfMask(value));
+      return;
+    }
+
+    if (field === "phone") {
+      updateField(field, applyPhoneMask(value));
+      return;
+    }
+
+    if (field === "zipCode") {
+      updateField(field, applyCepMask(value));
+      return;
+    }
+
+    updateField(field, value);
+  }
+
+  function ConfidenceBadge({
+    level,
+    source
+  }: {
+    level: ExtractionConfidence;
+    source?: string;
+  }) {
+    const { label, variant } = confidenceBadgeByLevel[level];
+
+    return (
+      <div className="scanned-review-modal__confidence">
+        <Badge variant={variant}>{label}</Badge>
+        {source ? <span>{source}</span> : null}
+      </div>
+    );
+  }
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-review-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle="Revise e confirme os dados extraídos"
+      overlayClassName="scanned-review-modal-overlay"
+      className="scanned-review-modal"
+      headerClassName="scanned-review-modal__header"
+      copyClassName="scanned-review-modal__copy"
+      closeButtonClassName="scanned-review-modal__close"
+      bodyClassName="scanned-review-modal__body"
+      footerClassName="scanned-review-modal__footer"
+      footer={
+        <>
+          <Button type="button" variant="ghost" size="sm" className="scanned-review-modal__back" onClick={onBack}>
+            Voltar
+          </Button>
+          <Button type="button" variant="primary" size="sm" className="scanned-review-modal__continue" onClick={onContinue}>
+            Continuar
+          </Button>
+        </>
+      }
+    >
+      <div className="scanned-review-modal__stepper">
+        <Stepper
+          steps={scannedRegistrationSteps}
+          currentStep={3}
+          ariaLabel="Etapas do cadastro via escaneamento"
+          className="scanned-student-modal__stepper-content"
+        />
+      </div>
+
+      <div className="scanned-review-modal__content">
+        <aside className="scanned-review-modal__sidebar">
+          <h4>Documentos</h4>
+          <div className="scanned-review-modal__document-list">
+            {attachedDocuments.length > 0 ? (
+              attachedDocuments.map((document) => (
+                <button
+                  key={document.id}
+                  type="button"
+                  className={`scanned-review-modal__document-item ${selectedDocumentId === document.id ? "is-active" : ""}`}
+                  onClick={() => setSelectedDocumentId(document.id)}
+                >
+                  <span className="scanned-review-modal__document-item-icon" aria-hidden="true">
+                    {document.icon}
+                  </span>
+                  <span className="scanned-review-modal__document-item-copy">
+                    <strong>{document.title}</strong>
+                    <small>{uploadedFiles[document.id]?.name ?? document.fallbackFileName}</small>
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p className="scanned-review-modal__empty-list">Nenhum documento anexado</p>
+            )}
+          </div>
+
+          <h4>Visualização</h4>
+          <div className="scanned-review-modal__preview">
+            {previewImageUrl ? (
+              <img src={previewImageUrl} alt="Prévia do documento selecionado" />
+            ) : (
+              <div className="scanned-review-modal__preview-empty">
+                <FileText aria-hidden="true" />
+                <p>Sem visualização disponível para este arquivo</p>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        <section className="scanned-review-modal__panel">
+          <div className="scanned-review-modal__panel-heading">
+            <h3>Revise os Dados Extraídos</h3>
+            <p>Confirme se os dados estão corretos. Você pode editar qualquer informação.</p>
+          </div>
+
+          <div className="scanned-review-modal__section">
+            <h4>Dados Pessoais</h4>
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--single">
+              <div className="scanned-review-modal__field">
+                <label>Nome completo</label>
+                <Input value={reviewFormValues.fullName} showLabel={false} onChange={(event) => updateField("fullName", event.target.value)} />
+                <ConfidenceBadge level="high" source="de Documento de Identidade" />
+              </div>
+            </div>
+
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <div className="scanned-review-modal__field">
+                <label>RG</label>
+                <Input value={reviewFormValues.rg} showLabel={false} onChange={(event) => updateMaskedField("rg", event.target.value)} />
+                <ConfidenceBadge level="high" source="de Documento de Identidade" />
+              </div>
+              <div className="scanned-review-modal__field">
+                <label>CPF</label>
+                <Input value={reviewFormValues.cpf} showLabel={false} onChange={(event) => updateMaskedField("cpf", event.target.value)} />
+                <ConfidenceBadge level="high" source="de Documento de Identidade" />
+              </div>
+            </div>
+
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <div className="scanned-review-modal__field">
+                <label>Estado civil</label>
+                <SelectField
+                  variant="form"
+                  ariaLabel="Estado civil"
+                  value={reviewFormValues.maritalStatus}
+                  options={maritalStatusOptions}
+                  onChange={(event) => updateField("maritalStatus", event.target.value)}
+                />
+                <ConfidenceBadge level="medium" source="de Formulário de Matrícula" />
+              </div>
+              <div className="scanned-review-modal__field">
+                <label>Data de nascimento</label>
+                <DatePicker
+                  value={reviewFormValues.birthDate}
+                  onChange={(event) => updateField("birthDate", event.target.value)}
+                  aria-label="Data de nascimento"
+                />
+                <ConfidenceBadge level="high" source="de Documento de Identidade" />
+              </div>
+            </div>
+
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <div className="scanned-review-modal__field">
+                <label>Sexo</label>
+                <SelectField
+                  variant="form"
+                  ariaLabel="Sexo"
+                  value={reviewFormValues.sex}
+                  options={sexOptions}
+                  onChange={(event) => updateField("sex", event.target.value)}
+                />
+                <ConfidenceBadge level="high" source="de Formulário de Matrícula" />
+              </div>
+              <div className="scanned-review-modal__field">
+                <label>Nacionalidade</label>
+                <Input value={reviewFormValues.nationality} showLabel={false} onChange={(event) => updateField("nationality", event.target.value)} />
+                <ConfidenceBadge level="high" source="de Formulário de Matrícula" />
+              </div>
+            </div>
+          </div>
+
+          <div className="scanned-review-modal__section">
+            <h4>Contato</h4>
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <div className="scanned-review-modal__field">
+                <label>Telefone</label>
+                <Input value={reviewFormValues.phone} showLabel={false} onChange={(event) => updateMaskedField("phone", event.target.value)} />
+                <ConfidenceBadge level="medium" source="de Formulário de Matrícula" />
+              </div>
+              <div className="scanned-review-modal__field">
+                <label>E-mail</label>
+                <Input value={reviewFormValues.email} showLabel={false} onChange={(event) => updateField("email", event.target.value)} />
+                <ConfidenceBadge level="medium" source="de Formulário de Matrícula" />
+              </div>
+            </div>
+          </div>
+
+          <div className="scanned-review-modal__section">
+            <h4>Endereço</h4>
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--three-compact">
+              <div className="scanned-review-modal__field">
+                <label>Rua</label>
+                <Input value={reviewFormValues.street} showLabel={false} onChange={(event) => updateField("street", event.target.value)} />
+                <ConfidenceBadge level="high" />
+              </div>
+              <div className="scanned-review-modal__field">
+                <label>Número</label>
+                <Input value={reviewFormValues.number} showLabel={false} onChange={(event) => updateField("number", event.target.value)} />
+              </div>
+              <div className="scanned-review-modal__field">
+                <label>CEP</label>
+                <Input
+                  className="scanned-review-modal__input--warning"
+                  value={reviewFormValues.zipCode}
+                  showLabel={false}
+                  onChange={(event) => updateMaskedField("zipCode", event.target.value)}
+                />
+                <ConfidenceBadge level="low" />
+              </div>
+            </div>
+
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--three">
+              <div className="scanned-review-modal__field">
+                <label>Bairro</label>
+                <Input value={reviewFormValues.neighborhood} showLabel={false} onChange={(event) => updateField("neighborhood", event.target.value)} />
+                <ConfidenceBadge level="medium" />
+              </div>
+              <div className="scanned-review-modal__field">
+                <label>Cidade</label>
+                <SelectField
+                  variant="form"
+                  ariaLabel="Cidade"
+                  value={reviewFormValues.city}
+                  options={cityOptions}
+                  onChange={(event) => updateField("city", event.target.value)}
+                />
+                <ConfidenceBadge level="high" />
+              </div>
+              <div className="scanned-review-modal__field">
+                <label>Estado</label>
+                <SelectField
+                  variant="form"
+                  ariaLabel="UF"
+                  value={reviewFormValues.state}
+                  options={stateOptions}
+                  onChange={(event) => updateField("state", event.target.value)}
+                />
+                <ConfidenceBadge level="high" />
+              </div>
+            </div>
+          </div>
+
+          <div className="scanned-review-modal__section">
+            <h4>Informações Familiares</h4>
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <div className="scanned-review-modal__field">
+                <label>Nome do pai</label>
+                <Input value={reviewFormValues.fatherName} showLabel={false} onChange={(event) => updateField("fatherName", event.target.value)} />
+                <ConfidenceBadge level="medium" />
+              </div>
+              <div className="scanned-review-modal__field">
+                <label>Nome da mãe</label>
+                <Input value={reviewFormValues.motherName} showLabel={false} onChange={(event) => updateField("motherName", event.target.value)} />
+                <ConfidenceBadge level="high" />
+              </div>
+            </div>
+          </div>
+
+          <div className="scanned-review-modal__warning">
+            <AlertCircle aria-hidden="true" />
+            <div>
+              <strong>Alguns campos têm confiança baixa</strong>
+              <p>Revise com atenção os campos destacados em amarelo. Eles podem conter erros de leitura.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </ModalContainer>
+  );
+}
+
+function ScannedEnrollmentModal({
+  isOpen,
+  onClose,
+  onBack,
+  onContinue,
+  values,
+  onChange
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onBack: () => void;
+  onContinue: () => void;
+  values: ScannedEnrollmentForm;
+  onChange: (nextValues: ScannedEnrollmentForm) => void;
+}) {
+  const moduleOptions = [
+    { value: "", label: "Selecione" },
+    { value: "Módulo I", label: "Módulo I" },
+    { value: "Módulo II", label: "Módulo II" },
+    { value: "Módulo III", label: "Módulo III" }
+  ];
+
+  const classOptions = [
+    { value: "", label: "Selecione" },
+    ...getClassOptions((values.module || "Todos") as ModuleFilter)
+      .filter((option) => option !== "Todas")
+      .map((option) => ({ value: option, label: option }))
+  ];
+
+  const isContinueDisabled = values.module.trim() === "" || values.className.trim() === "";
+
+  function updateField(field: keyof ScannedEnrollmentForm, value: string) {
+    if (field === "module") {
+      onChange({
+        module: value,
+        className: ""
+      });
+      return;
+    }
+
+    onChange({
+      ...values,
+      [field]: value
+    });
+  }
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-enrollment-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle="Selecione o módulo e a turma"
+      overlayClassName="scanned-enrollment-modal-overlay"
+      className="scanned-enrollment-modal"
+      headerClassName="scanned-enrollment-modal__header"
+      copyClassName="scanned-enrollment-modal__copy"
+      closeButtonClassName="scanned-enrollment-modal__close"
+      bodyClassName="scanned-enrollment-modal__body"
+      footerClassName="scanned-enrollment-modal__footer"
+      footer={
+        <>
+          <Button type="button" variant="ghost" size="sm" className="scanned-enrollment-modal__back" onClick={onBack}>
+            Voltar
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="scanned-enrollment-modal__continue"
+            disabled={isContinueDisabled}
+            onClick={onContinue}
+          >
+            Continuar
+          </Button>
+        </>
+      }
+    >
+      <div className="scanned-enrollment-modal__stepper">
+        <Stepper
+          steps={scannedRegistrationSteps}
+          currentStep={4}
+          ariaLabel="Etapas do cadastro via escaneamento"
+          className="scanned-student-modal__stepper-content"
+        />
+      </div>
+
+      <section className="scanned-enrollment-modal__content">
+        <h3>
+          Matrícula <strong>*</strong>
+        </h3>
+        <div className="scanned-enrollment-modal__fields">
+          <div className="scanned-enrollment-modal__field">
+            <label>
+              Módulo <strong>*</strong>
+            </label>
+            <SelectField
+              variant="form"
+              ariaLabel="Módulo"
+              value={values.module}
+              options={moduleOptions}
+              onChange={(event) => updateField("module", event.target.value)}
+            />
+          </div>
+          <div className="scanned-enrollment-modal__field">
+            <label>
+              Turma <strong>*</strong>
+            </label>
+            <SelectField
+              variant="form"
+              ariaLabel="Turma"
+              value={values.className}
+              options={classOptions}
+              onChange={(event) => updateField("className", event.target.value)}
+            />
+          </div>
+        </div>
+      </section>
+    </ModalContainer>
+  );
+}
+
+function ScannedConfirmModal({
+  isOpen,
+  onClose,
+  onBack,
+  onSave,
+  uploadedFiles,
+  enrollment
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onBack: () => void;
+  onSave: () => void;
+  uploadedFiles: ScannedUploadFiles;
+  enrollment: ScannedEnrollmentForm;
+}) {
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+
+  const extractedFields = [
+    "Nome completo",
+    "RG",
+    "Data de nascimento",
+    "Sexo",
+    "Estado civil",
+    "Nacionalidade",
+    "Telefone",
+    "E-mail",
+    "Rua",
+    "Número",
+    "Bairro",
+    "Cidade",
+    "Estado",
+    "CEP",
+    "Nome do pai",
+    "Nome da mãe"
+  ];
+
+  const attachedDocuments = [
+    { id: "enrollmentForm", label: "Formulário de Matrícula" },
+    { id: "identityDocument", label: "Documento de Identidade" },
+    { id: "residenceProof", label: "Comprovante de Residência" },
+    { id: "photo", label: "Foto 3x4" }
+  ].filter((document) => uploadedFiles[document.id as keyof ScannedUploadFiles]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const selectedFile = uploadedFiles.photo;
+    if (!selectedFile || !selectedFile.type.startsWith("image/")) {
+      setPhotoPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPhotoPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [isOpen, uploadedFiles.photo]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-confirm-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle="Confirme os dados antes de salvar"
+      overlayClassName="scanned-confirm-modal-overlay"
+      className="scanned-confirm-modal"
+      headerClassName="scanned-confirm-modal__header"
+      copyClassName="scanned-confirm-modal__copy"
+      closeButtonClassName="scanned-confirm-modal__close"
+      bodyClassName="scanned-confirm-modal__body"
+      footerClassName="scanned-confirm-modal__footer"
+      footer={
+        <>
+          <Button type="button" variant="ghost" size="sm" className="scanned-confirm-modal__back" onClick={onBack}>
+            Voltar
+          </Button>
+          <Button type="button" variant="primary" size="sm" className="scanned-confirm-modal__save" onClick={onSave}>
+            Salvar Aluno
+          </Button>
+        </>
+      }
+    >
+      <div className="scanned-confirm-modal__stepper">
+        <Stepper
+          steps={scannedRegistrationSteps}
+          currentStep={5}
+          ariaLabel="Etapas do cadastro via escaneamento"
+          className="scanned-student-modal__stepper-content"
+        />
+      </div>
+
+      <section className="scanned-confirm-modal__content">
+        <div className="scanned-confirm-modal__heading">
+          <h3>Revisão Final</h3>
+          <p>Confirme todas as informações antes de salvar o cadastro</p>
+        </div>
+
+        <article className="scanned-confirm-modal__summary-card">
+          <div className="scanned-confirm-modal__avatar" aria-hidden="true">
+            {photoPreviewUrl ? <img src={photoPreviewUrl} alt="" /> : <FileImage />}
+          </div>
+          <div className="scanned-confirm-modal__student-info">
+            <h4>Marina Santos Silva</h4>
+            <div className="scanned-confirm-modal__info-grid">
+              <p>
+                RG: <strong>12.345.678-9</strong>
+              </p>
+              <p>
+                Telefone: <strong>(11) 98765-4321</strong>
+              </p>
+              <p>
+                Data de nascimento: <strong>1998-05-15</strong>
+              </p>
+              <p>
+                E-mail: <strong>marina.silva@email.com</strong>
+              </p>
+            </div>
+            <div className="scanned-confirm-modal__tags">
+              <Pill tone="violet" label={enrollment.module || "Módulo"} />
+              <Pill tone="blue" label={enrollment.className || "Turma"} />
+            </div>
+          </div>
+        </article>
+
+        <div className="scanned-confirm-modal__lists">
+          <article className="scanned-confirm-modal__list-card">
+            <h4>Dados Extraídos</h4>
+            <ul>
+              {extractedFields.map((field) => (
+                <li key={field}>
+                  <CheckCircle2 aria-hidden="true" />
+                  <span>{field}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className="scanned-confirm-modal__list-card">
+            <h4>Documentos Anexados</h4>
+            <ul>
+              {attachedDocuments.map((document) => (
+                <li key={document.id}>
+                  <CheckCircle2 aria-hidden="true" />
+                  <span>{document.label}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        </div>
+
+        <div className="scanned-confirm-modal__success">
+          <CheckCircle2 aria-hidden="true" />
+          <div>
+            <strong>Tudo pronto para salvar!</strong>
+            <p>Todos os dados foram revisados e estão prontos para serem salvos no sistema.</p>
+          </div>
+        </div>
+      </section>
     </ModalContainer>
   );
 }
@@ -2287,6 +3113,12 @@ export function StudentsPageDrawer() {
   const [isRegistrationTypeModalOpen, setIsRegistrationTypeModalOpen] = useState(false);
   const [isManualStudentModalOpen, setIsManualStudentModalOpen] = useState(false);
   const [isScannedStudentModalOpen, setIsScannedStudentModalOpen] = useState(false);
+  const [isScannedProcessingModalOpen, setIsScannedProcessingModalOpen] = useState(false);
+  const [isScannedReviewModalOpen, setIsScannedReviewModalOpen] = useState(false);
+  const [isScannedEnrollmentModalOpen, setIsScannedEnrollmentModalOpen] = useState(false);
+  const [isScannedConfirmModalOpen, setIsScannedConfirmModalOpen] = useState(false);
+  const [scannedUploadFiles, setScannedUploadFiles] = useState<ScannedUploadFiles>(emptyScannedUploadFiles);
+  const [scannedEnrollmentForm, setScannedEnrollmentForm] = useState<ScannedEnrollmentForm>(emptyScannedEnrollmentForm);
   const [isDocumentUploadModalOpen, setIsDocumentUploadModalOpen] = useState(false);
   const [documentUploadError, setDocumentUploadError] = useState("");
   const [personalAttachmentsByStudent, setPersonalAttachmentsByStudent] = useState<Record<number, PersonalAttachmentRecord[]>>({});
@@ -2314,6 +3146,12 @@ export function StudentsPageDrawer() {
     setIsRegistrationTypeModalOpen(false);
     setIsManualStudentModalOpen(false);
     setIsScannedStudentModalOpen(false);
+    setIsScannedProcessingModalOpen(false);
+    setIsScannedReviewModalOpen(false);
+    setIsScannedEnrollmentModalOpen(false);
+    setIsScannedConfirmModalOpen(false);
+    setScannedUploadFiles(emptyScannedUploadFiles);
+    setScannedEnrollmentForm(emptyScannedEnrollmentForm);
     closeAttachmentDeleteModal();
     closeDocumentUploadModal();
     closeJustificationModal();
@@ -2345,6 +3183,10 @@ export function StudentsPageDrawer() {
       isRegistrationTypeModalOpen ||
       isManualStudentModalOpen ||
       isScannedStudentModalOpen ||
+      isScannedProcessingModalOpen ||
+      isScannedReviewModalOpen ||
+      isScannedEnrollmentModalOpen ||
+      isScannedConfirmModalOpen ||
       Boolean(attachmentPendingDelete) ||
       isDocumentUploadModalOpen ||
       isJustificationModalOpen;
@@ -2369,6 +3211,26 @@ export function StudentsPageDrawer() {
 
         if (isScannedStudentModalOpen) {
           setIsScannedStudentModalOpen(false);
+          return;
+        }
+
+        if (isScannedProcessingModalOpen) {
+          setIsScannedProcessingModalOpen(false);
+          return;
+        }
+
+        if (isScannedReviewModalOpen) {
+          setIsScannedReviewModalOpen(false);
+          return;
+        }
+
+        if (isScannedEnrollmentModalOpen) {
+          setIsScannedEnrollmentModalOpen(false);
+          return;
+        }
+
+        if (isScannedConfirmModalOpen) {
+          setIsScannedConfirmModalOpen(false);
           return;
         }
 
@@ -2398,7 +3260,11 @@ export function StudentsPageDrawer() {
     isJustificationModalOpen,
     isManualStudentModalOpen,
     isRegistrationTypeModalOpen,
-    isScannedStudentModalOpen
+    isScannedStudentModalOpen,
+    isScannedProcessingModalOpen,
+    isScannedReviewModalOpen,
+    isScannedEnrollmentModalOpen,
+    isScannedConfirmModalOpen
   ]);
 
   const classOptions = useMemo(() => getClassOptions(moduleFilter), [moduleFilter]);
@@ -3051,6 +3917,8 @@ export function StudentsPageDrawer() {
         }}
         onSelectOcr={() => {
           setIsRegistrationTypeModalOpen(false);
+          setScannedUploadFiles(emptyScannedUploadFiles);
+          setScannedEnrollmentForm(emptyScannedEnrollmentForm);
           setIsScannedStudentModalOpen(true);
         }}
       />
@@ -3060,7 +3928,66 @@ export function StudentsPageDrawer() {
       />
       <ScannedStudentRegistrationModal
         isOpen={isScannedStudentModalOpen}
-        onClose={() => setIsScannedStudentModalOpen(false)}
+        onClose={() => {
+          setIsScannedStudentModalOpen(false);
+        }}
+        initialUploadFiles={scannedUploadFiles}
+        onUploadFilesChange={setScannedUploadFiles}
+        onOpenProcessing={(files) => {
+          setScannedUploadFiles(files);
+          setIsScannedStudentModalOpen(false);
+          setIsScannedProcessingModalOpen(true);
+        }}
+      />
+      <ScannedDocumentsProcessingModal
+        isOpen={isScannedProcessingModalOpen}
+        onClose={() => setIsScannedProcessingModalOpen(false)}
+        onComplete={() => {
+          setIsScannedProcessingModalOpen(false);
+          setIsScannedReviewModalOpen(true);
+        }}
+      />
+      <ScannedExtractedDataReviewModal
+        isOpen={isScannedReviewModalOpen}
+        onClose={() => setIsScannedReviewModalOpen(false)}
+        onContinue={() => {
+          setIsScannedReviewModalOpen(false);
+          setIsScannedEnrollmentModalOpen(true);
+        }}
+        uploadedFiles={scannedUploadFiles}
+        onBack={() => {
+          setIsScannedReviewModalOpen(false);
+          setIsScannedStudentModalOpen(true);
+        }}
+      />
+      <ScannedEnrollmentModal
+        isOpen={isScannedEnrollmentModalOpen}
+        onClose={() => setIsScannedEnrollmentModalOpen(false)}
+        values={scannedEnrollmentForm}
+        onChange={setScannedEnrollmentForm}
+        onBack={() => {
+          setIsScannedEnrollmentModalOpen(false);
+          setIsScannedReviewModalOpen(true);
+        }}
+        onContinue={() => {
+          setIsScannedEnrollmentModalOpen(false);
+          setIsScannedConfirmModalOpen(true);
+        }}
+      />
+      <ScannedConfirmModal
+        isOpen={isScannedConfirmModalOpen}
+        onClose={() => setIsScannedConfirmModalOpen(false)}
+        onBack={() => {
+          setIsScannedConfirmModalOpen(false);
+          setIsScannedEnrollmentModalOpen(true);
+        }}
+        onSave={() => {
+          setIsScannedConfirmModalOpen(false);
+          setScannedUploadFiles(emptyScannedUploadFiles);
+          setScannedEnrollmentForm(emptyScannedEnrollmentForm);
+        }}
+        uploadedFiles={scannedUploadFiles}
+        enrollment={scannedEnrollmentForm}
       />
       {selectedStudent ? (
         <StudentAttachmentDeleteModal

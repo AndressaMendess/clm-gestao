@@ -2233,29 +2233,7 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
 }
 
 .manual-student-modal__cancel {
-  min-height: 36px;
-  padding: 8px 16px;
   color: var(--color-content-secondary);
-  font-size: var(--text-body-medium-size);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--text-body-line-height);
-  letter-spacing: var(--text-body-letter-spacing);
-}
-
-.manual-student-modal__continue {
-  min-height: 36px;
-  border-radius: 10px;
-  padding: 8px 16px;
-  font-size: var(--text-body-medium-size);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--text-body-line-height);
-  letter-spacing: var(--text-body-letter-spacing);
-}
-
-.manual-student-modal__continue:disabled {
-  background: var(--color-button-primary-background-disabled);
-  color: var(--color-button-primary-content-disabled);
-  cursor: not-allowed;
 }
 
 .registration-choice-modal-overlay {
@@ -2490,7 +2468,11 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   font-weight: var(--font-weight-medium);
 }
 
-.scanned-student-modal-overlay {
+.scanned-student-modal-overlay,
+.scanned-processing-modal-overlay,
+.scanned-review-modal-overlay,
+.scanned-enrollment-modal-overlay,
+.scanned-confirm-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 41;
@@ -2506,14 +2488,20 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   max-height: min(100vh - 48px, 92vh);
 }
 
-.scanned-student-modal__body {
+.scanned-student-modal__body,
+.scanned-review-modal__body,
+.scanned-enrollment-modal__body,
+.scanned-confirm-modal__body {
   min-height: 0;
   display: flex;
   flex: 1;
   flex-direction: column;
 }
 
-.scanned-student-modal__stepper {
+.scanned-student-modal__stepper,
+.scanned-review-modal__stepper,
+.scanned-enrollment-modal__stepper,
+.scanned-confirm-modal__stepper {
   padding: 16px 24px 0;
 }
 
@@ -2727,7 +2715,6 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
 
 .scanned-student-modal__upload-field .document-upload-field__surface > span {
   color: var(--color-content-tertiary);
-  font-size: var(--text-body-large-size);
 }
 
 .scanned-student-modal__upload-field .document-upload-field__surface--attached {
@@ -2821,19 +2808,628 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   line-height: 16px;
 }
 
-.scanned-student-modal__footer {
+.scanned-student-modal__footer,
+.scanned-review-modal__footer,
+.scanned-enrollment-modal__footer,
+.scanned-confirm-modal__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.scanned-student-modal__cancel,
-.scanned-student-modal__continue {
-  min-height: 36px;
-  border-radius: 10px;
-  padding: 8px 16px;
+.scanned-processing-modal {
+  width: min(100%, 960px);
+  max-height: min(100vh - 48px, 92vh);
 }
+
+.scanned-processing-modal__body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 24px 32px;
+}
+
+.scanned-processing-modal__content {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.scanned-processing-modal__spinner-shell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--color-brand-primary-subtle);
+  color: var(--color-brand-primary-main);
+  margin-bottom: 8px;
+}
+
+.scanned-processing-modal__spinner {
+  width: 28px;
+  height: 28px;
+  animation: scanned-processing-spin 1s linear infinite;
+}
+
+.scanned-processing-modal__content h3 {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-heading-h4-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-heading-4-line-height);
+  letter-spacing: var(--text-heading-letter-spacing);
+}
+
+.scanned-processing-modal__content p {
+  margin: 0;
+  color: var(--color-content-tertiary);
+  font-size: var(--text-body-large-size);
+  line-height: var(--text-body-line-height);
+  max-width: 448px;
+}
+
+.scanned-processing-modal__list {
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scanned-processing-modal__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: 14px;
+  background: var(--color-background-always-light);
+  padding: 16px;
+}
+
+.scanned-processing-modal__item-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-content-primary);
+  font-size: var(--text-body-large-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-processing-modal__item-info svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-feedback-success-content);
+}
+
+.scanned-processing-modal__item-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  border-radius: var(--radius-full);
+  background: #e6f6ec;
+  padding: 4px 10px;
+  color: #009236;
+  font-size: var(--text-body-small-size);
+  font-weight: var(--font-weight-medium);
+  line-height: 16px;
+}
+
+.scanned-review-modal {
+  width: min(100%, 1152px);
+  max-height: min(100vh - 48px, 94vh);
+}
+
+.scanned-review-modal__content {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 0;
+  overflow-y: auto;
+}
+
+.scanned-review-modal__sidebar {
+  border-right: 1px solid var(--color-border-secondary);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scanned-review-modal__sidebar h4 {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-body-large-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-review-modal__document-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.scanned-review-modal__empty-list {
+  margin: 0;
+  color: var(--color-content-tertiary);
+  font-size: var(--text-body-medium-size);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-review-modal__document-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 10px;
+  background: var(--color-background-always-light);
+  padding: 12px;
+  text-align: left;
+}
+
+.scanned-review-modal__document-item.is-active {
+  border-color: var(--color-brand-primary-main);
+}
+
+.scanned-review-modal__document-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: var(--color-content-quaternary);
+  flex-shrink: 0;
+}
+
+.scanned-review-modal__document-item-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.scanned-review-modal__document-item-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scanned-review-modal__document-item-copy strong {
+  color: var(--color-content-primary);
+  font-size: var(--text-body-large-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-review-modal__document-item-copy small {
+  color: var(--color-content-tertiary);
+  font-size: var(--text-body-small-size);
+  line-height: 16px;
+  word-break: break-all;
+}
+
+.scanned-review-modal__preview {
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 10px;
+  background: var(--color-background-always-light);
+  overflow: hidden;
+  min-height: 248px;
+}
+
+.scanned-review-modal__preview img {
+  display: block;
+  width: 100%;
+  height: 248px;
+  object-fit: cover;
+}
+
+.scanned-review-modal__preview-empty {
+  min-height: 248px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--color-content-tertiary);
+}
+
+.scanned-review-modal__preview-empty svg {
+  width: 20px;
+  height: 20px;
+}
+
+.scanned-review-modal__preview-empty p {
+  margin: 0;
+  font-size: var(--text-body-medium-size);
+  line-height: var(--text-body-line-height);
+  text-align: center;
+}
+
+.scanned-review-modal__panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.scanned-review-modal__panel-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scanned-review-modal__panel-heading h3 {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-body-x-large-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-review-modal__panel-heading p {
+  margin: 0;
+  color: var(--color-content-tertiary);
+  font-size: var(--text-body-medium-size);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-review-modal__section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scanned-review-modal__section h4 {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-body-x-large-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-review-modal__grid {
+  display: grid;
+  gap: 16px;
+}
+
+.scanned-review-modal__grid--single {
+  grid-template-columns: 1fr;
+}
+
+.scanned-review-modal__grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.scanned-review-modal__grid--three {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
+}
+
+.scanned-review-modal__grid--three-compact {
+  grid-template-columns: minmax(0, 2fr) 120px 120px;
+}
+
+.scanned-review-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scanned-review-modal__field > label {
+  color: var(--color-content-secondary);
+  font-size: var(--text-body-large-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-review-modal__field .input-field,
+.scanned-review-modal__field .select-field--form,
+.scanned-review-modal__field .date-picker-field__input {
+  min-height: 42px;
+  border-color: var(--color-border-tertiary);
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.scanned-review-modal__confidence {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scanned-review-modal__confidence > span {
+  font-size: var(--text-body-small-size);
+  line-height: 16px;
+}
+
+.scanned-review-modal__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid #fedf89;
+  border-radius: 10px;
+  background: #fffaeb;
+  padding: 14px 16px;
+}
+
+.scanned-review-modal__warning svg {
+  width: 18px;
+  height: 18px;
+  color: #b54708;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.scanned-review-modal__warning strong,
+.scanned-review-modal__warning p {
+  color: #b54708;
+  font-size: var(--text-body-large-size);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-review-modal__warning strong {
+  font-weight: var(--font-weight-medium);
+}
+
+.scanned-review-modal__warning p {
+  margin: 2px 0 0;
+}
+
+.scanned-enrollment-modal {
+  width: min(100%, 1152px);
+  max-height: min(100vh - 48px, 94vh);
+}
+
+.scanned-enrollment-modal__content {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.scanned-enrollment-modal__content h3 {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-body-x-large-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-enrollment-modal__content h3 strong {
+  color: var(--color-feedback-error-content);
+}
+
+.scanned-enrollment-modal__fields {
+  display: grid;
+  gap: 16px;
+}
+
+.scanned-enrollment-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scanned-enrollment-modal__field label {
+  color: var(--color-content-secondary);
+  font-size: var(--text-body-large-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-enrollment-modal__field label strong {
+  color: var(--color-feedback-error-content);
+}
+
+.scanned-enrollment-modal__field .select-field--form {
+  min-height: 40px;
+  border-color: var(--color-border-tertiary);
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.scanned-confirm-modal {
+  width: min(100%, 1152px);
+  max-height: min(100vh - 48px, 94vh);
+}
+
+.scanned-confirm-modal__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+.scanned-confirm-modal__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+}
+
+.scanned-confirm-modal__heading h3 {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-body-x-large-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-confirm-modal__heading p {
+  margin: 0;
+  color: var(--color-content-tertiary);
+  font-size: var(--text-body-medium-size);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-confirm-modal__summary-card {
+  border: 1px solid var(--color-border-primary);
+  border-radius: 16px;
+  background: var(--color-background-always-light);
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+}
+
+.scanned-confirm-modal__avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  background: var(--color-background-secondary);
+  color: var(--color-content-tertiary);
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.scanned-confirm-modal__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scanned-confirm-modal__avatar svg {
+  width: 28px;
+  height: 28px;
+}
+
+.scanned-confirm-modal__student-info {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scanned-confirm-modal__student-info h4 {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-body-x-large-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-confirm-modal__info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.scanned-confirm-modal__info-grid p {
+  margin: 0;
+  color: var(--color-content-tertiary);
+  font-size: var(--text-body-medium-size);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-confirm-modal__info-grid p strong {
+  color: var(--color-content-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.scanned-confirm-modal__tags {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.scanned-confirm-modal__lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.scanned-confirm-modal__list-card {
+  border: 1px solid var(--color-border-primary);
+  border-radius: 16px;
+  background: var(--color-background-always-light);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scanned-confirm-modal__list-card h4 {
+  margin: 0;
+  color: var(--color-content-primary);
+  font-size: var(--text-body-x-large-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-confirm-modal__list-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scanned-confirm-modal__list-card li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-content-tertiary);
+  font-size: var(--text-body-medium-size);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-confirm-modal__list-card li svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-feedback-success-content);
+  flex-shrink: 0;
+}
+
+.scanned-confirm-modal__success {
+  border: 1px solid var(--color-feedback-success-border);
+  border-radius: 16px;
+  background: var(--color-feedback-success-background);
+  padding: 16px;
+  display: flex;
+  gap: 10px;
+}
+
+.scanned-confirm-modal__success svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-feedback-success-content);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.scanned-confirm-modal__success strong,
+.scanned-confirm-modal__success p {
+  margin: 0;
+  color: var(--color-feedback-success-content);
+  font-size: var(--text-body-medium-size);
+  line-height: var(--text-body-line-height);
+}
+
+.scanned-confirm-modal__success strong {
+  font-weight: var(--font-weight-medium);
+}
+
 
 .justification-modal-overlay {
   position: fixed;
@@ -3074,11 +3670,6 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   line-height: 1.33;
 }
 
-.document-upload-field__surface--attached.is-success strong,
-.document-upload-field__surface--attached.is-success span {
-  color: #067647;
-}
-
 .document-upload-field__footer {
   display: flex;
   width: 100%;
@@ -3309,6 +3900,15 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   }
 }
 
+@keyframes scanned-processing-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .button:hover, .primary-button:hover, .filter-button:hover, .pagination__button:hover, .pagination__number:hover, .icon-button:hover, .nav-item:hover, .logout-button:hover { filter: brightness(0.98); }
 .nav-item__vector-icon, .sidebar__toggle svg { color: currentColor; }
 
@@ -3381,6 +3981,35 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   .registration-choice-modal__options {
     grid-template-columns: 1fr;
   }
+  .scanned-student-modal__tips-grid,
+  .scanned-student-modal__documents-grid,
+  .scanned-student-modal__upload-grid {
+    grid-template-columns: 1fr;
+  }
+  .scanned-review-modal__content {
+    grid-template-columns: 1fr;
+  }
+  .scanned-review-modal__sidebar,
+  .scanned-review-modal__panel {
+    padding: 16px;
+  }
+  .scanned-review-modal__sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-secondary);
+  }
+  .scanned-review-modal__grid--two,
+  .scanned-review-modal__grid--three,
+  .scanned-review-modal__grid--three-compact {
+    grid-template-columns: 1fr;
+  }
+  .scanned-confirm-modal__summary-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .scanned-confirm-modal__info-grid,
+  .scanned-confirm-modal__lists {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -3435,7 +4064,6 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
     gap: 6px;
   }
   .students-mobile-card__field > span {
-    color: #667085;
     font-size: var(--text-body-small);
     font-weight: var(--font-weight-medium);
     line-height: 1.33;
@@ -3466,13 +4094,29 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
     grid-template-columns: 1fr;
     gap: 12px;
   }
+  .modal-container__copy h2 {
+    font-size: var(--text-body-x-large-size);
+    line-height: var(--text-body-line-height);
+    letter-spacing: var(--text-body-letter-spacing);
+  }
+  .modal-container__copy p {
+    font-size: var(--text-body-small-size);
+    line-height: 1.33;
+    letter-spacing: var(--text-body-letter-spacing);
+  }
   .justification-modal-overlay {
     padding: 12px;
-    align-items: flex-end;
+    align-items: center;
   }
-  .manual-student-modal-overlay {
+  .manual-student-modal-overlay,
+  .registration-choice-modal-overlay,
+  .scanned-student-modal-overlay,
+  .scanned-processing-modal-overlay,
+  .scanned-review-modal-overlay,
+  .scanned-enrollment-modal-overlay,
+  .scanned-confirm-modal-overlay {
     padding: 12px;
-    align-items: flex-end;
+    align-items: center;
   }
   .manual-student-modal {
     width: 100%;
@@ -3519,10 +4163,6 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
     width: 100%;
     justify-content: center;
   }
-  .registration-choice-modal-overlay {
-    padding: 12px;
-    align-items: flex-end;
-  }
   .registration-choice-modal {
     width: 100%;
     max-height: min(100vh - 24px, 94vh);
@@ -3547,11 +4187,11 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
   .registration-choice-option__chip {
     flex: 1 1 45%;
   }
-  .scanned-student-modal-overlay {
-    padding: 12px;
-    align-items: flex-end;
-  }
-  .scanned-student-modal {
+  .scanned-student-modal,
+  .scanned-processing-modal,
+  .scanned-review-modal,
+  .scanned-enrollment-modal,
+  .scanned-confirm-modal {
     width: 100%;
     max-height: min(100vh - 24px, 94vh);
     border-radius: 20px;
@@ -3566,6 +4206,16 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
     padding-top: 20px;
     padding-bottom: 16px;
   }
+  .scanned-student-modal__intro h3 {
+    font-size: var(--text-body-x-large-size);
+    line-height: var(--text-body-line-height);
+    letter-spacing: var(--text-body-letter-spacing);
+  }
+  .scanned-student-modal__intro p {
+    font-size: var(--text-body-medium-size);
+    line-height: var(--text-body-line-height);
+    letter-spacing: var(--text-body-letter-spacing);
+  }
   .scanned-student-modal__tips-grid,
   .scanned-student-modal__documents-grid,
   .scanned-student-modal__upload-grid {
@@ -3576,9 +4226,84 @@ input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var
     align-items: stretch;
   }
   .scanned-student-modal__cancel,
-  .scanned-student-modal__continue {
+  .scanned-student-modal__continue,
+  .scanned-review-modal__back,
+  .scanned-review-modal__continue,
+  .scanned-enrollment-modal__back,
+  .scanned-enrollment-modal__continue,
+  .scanned-confirm-modal__back,
+  .scanned-confirm-modal__save {
     width: 100%;
     justify-content: center;
+  }
+  .scanned-processing-modal__header,
+  .scanned-processing-modal__body {
+    padding-inline: 16px;
+  }
+  .scanned-processing-modal__body {
+    padding-top: 20px;
+    padding-bottom: 16px;
+  }
+  .scanned-processing-modal__item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .scanned-review-modal__header,
+  .scanned-review-modal__stepper,
+  .scanned-review-modal__footer {
+    padding-inline: 16px;
+  }
+  .scanned-review-modal__content {
+    grid-template-columns: 1fr;
+  }
+  .scanned-review-modal__sidebar,
+  .scanned-review-modal__panel {
+    padding: 16px;
+  }
+  .scanned-review-modal__sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-secondary);
+  }
+  .scanned-review-modal__grid--two,
+  .scanned-review-modal__grid--three,
+  .scanned-review-modal__grid--three-compact {
+    grid-template-columns: 1fr;
+  }
+  .scanned-review-modal__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .scanned-enrollment-modal__header,
+  .scanned-enrollment-modal__stepper,
+  .scanned-enrollment-modal__content,
+  .scanned-enrollment-modal__footer {
+    padding-inline: 16px;
+  }
+  .scanned-enrollment-modal__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .scanned-confirm-modal__header,
+  .scanned-confirm-modal__stepper,
+  .scanned-confirm-modal__content,
+  .scanned-confirm-modal__footer {
+    padding-inline: 16px;
+  }
+  .scanned-confirm-modal__content {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+  .scanned-confirm-modal__summary-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .scanned-confirm-modal__info-grid,
+  .scanned-confirm-modal__lists {
+    grid-template-columns: 1fr;
+  }
+  .scanned-confirm-modal__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
   }
   .justification-modal {
     width: 100%;
