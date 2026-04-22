@@ -1,4 +1,5 @@
 import { FileText, Trash2, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 
 import { cn } from "@/src/lib/utils";
@@ -6,14 +7,20 @@ import { cn } from "@/src/lib/utils";
 type DocumentUploadVariant = "default" | "success" | "error";
 
 type DocumentUploadFieldProps = {
-  label: string;
+  label?: string;
+  showLabel?: boolean;
+  className?: string;
   hint?: string;
+  uploadTitle?: string;
+  attachedHint?: string;
   accept?: string;
   selectedFile: File | null;
   persistedFile?: {
     name: string;
     sizeLabel?: string;
   } | null;
+  showImagePreview?: boolean;
+  statusLabel?: string;
   errorMessage?: string;
   onFileChange: (file: File | null) => void;
   onFileRemove?: () => void;
@@ -28,19 +35,42 @@ function formatBytes(bytes: number) {
 }
 
 export function DocumentUploadField({
-  label,
-  hint = "PDF, PNG, JPG até 10MB",
+  label = "",
+  showLabel = true,
+  className,
+  hint = "PDF, PNG, JPG ate 10MB",
+  uploadTitle = "Clique ou arraste para enviar",
+  attachedHint,
   accept = ".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg",
   selectedFile,
   persistedFile,
+  showImagePreview = false,
+  statusLabel,
   errorMessage,
   onFileChange,
   onFileRemove
 }: DocumentUploadFieldProps) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const hasAttachedFile = Boolean(selectedFile || persistedFile);
   const variant: DocumentUploadVariant = errorMessage ? "error" : hasAttachedFile ? "success" : "default";
   const attachedFileName = selectedFile?.name ?? persistedFile?.name ?? "";
   const attachedFileSizeLabel = selectedFile ? formatBytes(selectedFile.size) : persistedFile?.sizeLabel ?? "";
+  const attachedSecondaryText = attachedHint ?? attachedFileSizeLabel;
+  const shouldShowImagePreview = Boolean(showImagePreview && selectedFile?.type.startsWith("image/") && previewUrl);
+
+  useEffect(() => {
+    if (!selectedFile || !showImagePreview || !selectedFile.type.startsWith("image/")) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedFile, showImagePreview]);
 
   const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     onFileChange(event.target.files?.[0] ?? null);
@@ -48,24 +78,32 @@ export function DocumentUploadField({
   };
 
   return (
-    <div className="document-upload-field">
-      <span className="document-upload-field__label">{label}</span>
+    <div className={cn("document-upload-field", className)}>
+      {showLabel ? <span className="document-upload-field__label">{label}</span> : null}
       {hasAttachedFile ? (
         <div className={cn("document-upload-field__surface", "document-upload-field__surface--attached", `is-${variant}`)}>
-          <span className="document-upload-field__file-icon" aria-hidden="true">
-            <FileText />
-          </span>
-          <strong>{attachedFileName}</strong>
-          <span>{attachedFileSizeLabel}</span>
-          {onFileRemove ? (
-            <button
-              className="document-upload-field__remove"
-              type="button"
-              aria-label="Remover documento"
-              onClick={onFileRemove}
-            >
-              <Trash2 />
-            </button>
+          {shouldShowImagePreview ? (
+            <img className="document-upload-field__image-preview" src={previewUrl ?? undefined} alt={attachedFileName} />
+          ) : (
+            <span className="document-upload-field__file-icon" aria-hidden="true">
+              <FileText />
+            </span>
+          )}
+
+          <div className="document-upload-field__meta">
+            <strong>{attachedFileName}</strong>
+            {attachedSecondaryText ? <span>{attachedSecondaryText}</span> : null}
+          </div>
+
+          {statusLabel || onFileRemove ? (
+            <div className="document-upload-field__footer">
+              {statusLabel ? <span className="document-upload-field__status">{statusLabel}</span> : null}
+              {onFileRemove ? (
+                <button className="document-upload-field__remove" type="button" aria-label="Remover documento" onClick={onFileRemove}>
+                  <Trash2 />
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ) : (
@@ -74,7 +112,7 @@ export function DocumentUploadField({
           <span className="document-upload-field__icon" aria-hidden="true">
             <Upload />
           </span>
-          <strong>Clique ou arraste para enviar</strong>
+          <strong>{uploadTitle}</strong>
           <span>{hint}</span>
         </label>
       )}

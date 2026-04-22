@@ -1,6 +1,24 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, CalendarDays, CheckCircle2, ChevronDown, Clock3, Download, ExternalLink, Eye, FileText, PenLine, Plus, Trash2, Upload, X } from "lucide-react";
-import type { FormEvent } from "react";
+import {
+  AlertCircle,
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardCheck,
+  Clock3,
+  Download,
+  ExternalLink,
+  Eye,
+  FileImage,
+  FileText,
+  Home,
+  PenLine,
+  Plus,
+  Trash2,
+  Upload,
+  X
+} from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
 
 import { Badge } from "@/src/components/ui/badge";
 import { Button, IconButton } from "@/src/components/ui/button";
@@ -9,10 +27,13 @@ import { Checkbox } from "@/src/components/ui/checkbox";
 import { CollapsibleCard } from "@/src/components/ui/collapsible-card";
 import { DatePicker } from "@/src/components/ui/date-picker";
 import { DocumentUploadField } from "@/src/components/ui/document-upload-field";
+import { Input } from "@/src/components/ui/input";
+import { ModalContainer } from "@/src/components/ui/modal-container";
 import { Pill, type PillTone } from "@/src/components/ui/pill";
 import { SearchInput } from "@/src/components/ui/search-input";
 import { SecondaryButton } from "@/src/components/ui/secondary-button";
 import { SelectField } from "@/src/components/ui/select-field";
+import { Stepper } from "@/src/components/ui/stepper";
 import { StatusBadge } from "@/src/components/ui/status-badge";
 import { TableCard } from "@/src/components/ui/table-card";
 import { TextareaField } from "@/src/components/ui/textarea-field";
@@ -354,6 +375,21 @@ const personalDocumentAcceptedMimeTypes = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "image/jpeg",
   "image/png"
+];
+
+const manualRegistrationSteps = [
+  { id: "personal", label: "Dados pessoais" },
+  { id: "documents", label: "Documentos" },
+  { id: "enrollment", label: "Matrícula" },
+  { id: "attachments", label: "Anexos" }
+];
+
+const scannedRegistrationSteps = [
+  { id: "instructions", label: "Instruções" },
+  { id: "upload", label: "Upload" },
+  { id: "review", label: "Revisão" },
+  { id: "module", label: "Módulo" },
+  { id: "confirm", label: "Confirmar" }
 ];
 
 function parseBrazilianDate(value: string) {
@@ -800,6 +836,987 @@ function StudentAttachmentDeleteModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function RegistrationTypeModal({
+  isOpen,
+  onClose,
+  onSelectManual,
+  onSelectOcr
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectManual: () => void;
+  onSelectOcr: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="registration-choice-modal-title"
+      title="Adicionar Aluno"
+      subtitle="Escolha como deseja realizar o cadastro"
+      overlayClassName="registration-choice-modal-overlay"
+      className="registration-choice-modal"
+      headerClassName="registration-choice-modal__header"
+      copyClassName="registration-choice-modal__copy"
+      closeButtonClassName="registration-choice-modal__close"
+      bodyClassName="registration-choice-modal__body"
+    >
+      <div className="registration-choice-modal__options">
+        <button className="registration-choice-option registration-choice-option--manual" type="button" onClick={onSelectManual}>
+          <span className="registration-choice-option__icon registration-choice-option__icon--manual" aria-hidden="true">
+            <FileText />
+          </span>
+          <span className="registration-choice-option__title">Cadastro Manual</span>
+          <span className="registration-choice-option__description">
+            Preencha todos os dados do aluno manualmente através de um formulário completo
+          </span>
+          <span className="registration-choice-option__tag">Modo tradicional</span>
+        </button>
+
+        <button className="registration-choice-option registration-choice-option--ocr" type="button" onClick={onSelectOcr}>
+          <span className="registration-choice-option__recommended">Recomendado</span>
+          <span className="registration-choice-option__icon registration-choice-option__icon--ocr" aria-hidden="true">
+            <Upload />
+          </span>
+          <span className="registration-choice-option__title">Escaneamento de Documentos</span>
+          <span className="registration-choice-option__description">
+            Envie fotos dos documentos e deixe o sistema preencher os dados automaticamente
+          </span>
+          <span className="registration-choice-option__chip-group">
+            <span className="registration-choice-option__chip">⚡ Mais rápido</span>
+            <span className="registration-choice-option__chip">✓ Menos erros</span>
+          </span>
+        </button>
+      </div>
+
+      <div className="registration-choice-modal__tip">
+        <p>
+          <span>💡</span>
+          <strong>Dica:</strong> O escaneamento de documentos reduz o tempo de cadastro em até 70% e minimiza erros de digitação.
+        </p>
+      </div>
+    </ModalContainer>
+  );
+}
+
+function ManualStudentRegistrationModal({
+  isOpen,
+  onClose
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const onlyDigits = (value: string) => value.replace(/\D/g, "");
+  const applyBirthDateMask = (value: string) => {
+    const digits = onlyDigits(value).slice(0, 8);
+    if (digits.length <= 2) {
+      return digits;
+    }
+    if (digits.length <= 4) {
+      return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    }
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  };
+  const applyPhoneMask = (value: string) => {
+    const digits = onlyDigits(value).slice(0, 11);
+    if (digits.length === 0) {
+      return "";
+    }
+    if (digits.length <= 2) {
+      return `(${digits}`;
+    }
+    if (digits.length <= 6) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    }
+    if (digits.length <= 10) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+  const applyRgMask = (value: string) => {
+    const digits = onlyDigits(value).slice(0, 9);
+    if (digits.length <= 2) {
+      return digits;
+    }
+    if (digits.length <= 5) {
+      return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    }
+    if (digits.length <= 8) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+    }
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}-${digits.slice(8)}`;
+  };
+  const applyCpfMask = (value: string) => {
+    const digits = onlyDigits(value).slice(0, 11);
+    if (digits.length <= 3) {
+      return digits;
+    }
+    if (digits.length <= 6) {
+      return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    }
+    if (digits.length <= 9) {
+      return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    }
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  };
+  const applyCepMask = (value: string) => {
+    const digits = onlyDigits(value).slice(0, 8);
+    if (digits.length <= 5) {
+      return digits;
+    }
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  };
+
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  const [personalFormValues, setPersonalFormValues] = useState({
+    fullName: "",
+    birthDate: "",
+    sex: "",
+    maritalStatus: "",
+    nationality: "",
+    email: "",
+    schoolEmail: "",
+    phone: ""
+  });
+  const [documentsFormValues, setDocumentsFormValues] = useState({
+    rg: "",
+    cpf: "",
+    street: "",
+    number: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    zipCode: ""
+  });
+  const [enrollmentFormValues, setEnrollmentFormValues] = useState({
+    module: "",
+    className: "",
+    status: "",
+    fatherName: "",
+    motherName: ""
+  });
+  const [attachmentsFormValues, setAttachmentsFormValues] = useState({
+    photo: null as File | null,
+    rg: null as File | null,
+    cnh: null as File | null,
+    residenceProof: null as File | null
+  });
+
+  const selectPlaceholder = { value: "", label: "Selecione" };
+  const sexOptions = [selectPlaceholder, { value: "feminino", label: "Feminino" }, { value: "masculino", label: "Masculino" }];
+  const maritalStatusOptions = [
+    selectPlaceholder,
+    { value: "solteiro", label: "Solteiro(a)" },
+    { value: "casado", label: "Casado(a)" },
+    { value: "divorciado", label: "Divorciado(a)" },
+    { value: "viuvo", label: "Viúvo(a)" }
+  ];
+  const stateOptions = [
+    { value: "", label: "" },
+    { value: "SP", label: "SP" },
+    { value: "RJ", label: "RJ" },
+    { value: "MG", label: "MG" },
+    { value: "BA", label: "BA" }
+  ];
+  const moduleOptions = [
+    { value: "", label: "Selecione" },
+    { value: "Módulo I", label: "Módulo I" },
+    { value: "Módulo II", label: "Módulo II" },
+    { value: "Módulo III", label: "Módulo III" }
+  ];
+  const enrollmentStatusOptions = [
+    { value: "", label: "Selecione" },
+    { value: "Ativo", label: "Ativo" },
+    { value: "Inativo", label: "Inativo" },
+    { value: "Trancamento", label: "Trancamento" }
+  ];
+
+  const classOptions = useMemo(() => {
+    if (!enrollmentFormValues.module) {
+      return [{ value: "", label: "Selecione" }];
+    }
+
+    return [
+      { value: "", label: "Selecione" },
+      ...getClassOptions(enrollmentFormValues.module as ModuleFilter)
+        .filter((option) => option !== "Todas")
+        .map((option) => ({ value: option, label: option }))
+    ];
+  }, [enrollmentFormValues.module]);
+
+  const isStep1Valid =
+    personalFormValues.fullName.trim() !== "" &&
+    personalFormValues.birthDate.trim() !== "" &&
+    personalFormValues.email.trim() !== "" &&
+    personalFormValues.phone.trim() !== "";
+  const isStep2Valid = documentsFormValues.rg.trim() !== "";
+  const isStep3Valid =
+    enrollmentFormValues.module.trim() !== "" &&
+    enrollmentFormValues.className.trim() !== "" &&
+    enrollmentFormValues.status.trim() !== "";
+  const isStep4Valid = Boolean(attachmentsFormValues.rg || attachmentsFormValues.cnh);
+  const isContinueDisabled =
+    (currentStep === 1 && !isStep1Valid) ||
+    (currentStep === 2 && !isStep2Valid) ||
+    (currentStep === 3 && !isStep3Valid) ||
+    (currentStep === 4 && !isStep4Valid);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(1);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [currentStep, isOpen]);
+
+  useEffect(() => {
+    if (!enrollmentFormValues.module) {
+      setEnrollmentFormValues((current) => ({
+        ...current,
+        className: ""
+      }));
+      return;
+    }
+
+    const availableClasses = getClassOptions(enrollmentFormValues.module as ModuleFilter).filter((option) => option !== "Todas");
+    if (!availableClasses.includes(enrollmentFormValues.className)) {
+      setEnrollmentFormValues((current) => ({
+        ...current,
+        className: ""
+      }));
+    }
+  }, [enrollmentFormValues.className, enrollmentFormValues.module]);
+
+  function updatePersonalField(field: keyof typeof personalFormValues, value: string) {
+    const nextValue =
+      field === "birthDate"
+        ? applyBirthDateMask(value)
+        : field === "phone"
+          ? applyPhoneMask(value)
+          : value;
+
+    setPersonalFormValues((current) => ({
+      ...current,
+      [field]: nextValue
+    }));
+  }
+
+  function updateDocumentsField(field: keyof typeof documentsFormValues, value: string) {
+    const nextValue =
+      field === "rg"
+        ? applyRgMask(value)
+        : field === "cpf"
+          ? applyCpfMask(value)
+          : field === "zipCode"
+            ? applyCepMask(value)
+            : value;
+
+    setDocumentsFormValues((current) => ({
+      ...current,
+      [field]: nextValue
+    }));
+  }
+
+  function updateEnrollmentField(field: keyof typeof enrollmentFormValues, value: string) {
+    setEnrollmentFormValues((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  function updateAttachmentField(field: keyof typeof attachmentsFormValues, value: File | null) {
+    setAttachmentsFormValues((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="manual-student-modal-title"
+      title="Adicionar Aluno"
+      subtitle="Preencha os dados do novo aluno"
+      overlayClassName="manual-student-modal-overlay"
+      className="manual-student-modal"
+      headerClassName="manual-student-modal__header"
+      copyClassName="manual-student-modal__copy"
+      closeButtonClassName="manual-student-modal__close"
+      bodyClassName="manual-student-modal__body"
+      footerClassName="manual-student-modal__footer"
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            className="manual-student-modal__cancel"
+            onClick={() => {
+              if (currentStep === 1) {
+                onClose();
+                return;
+              }
+
+              setCurrentStep((current) => (current === 4 ? 3 : current === 3 ? 2 : 1));
+            }}
+          >
+            {currentStep === 1 ? "Cancelar" : "Voltar"}
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="manual-student-modal__continue"
+            disabled={isContinueDisabled}
+            onClick={() => {
+              if (currentStep === 1) {
+                setCurrentStep(2);
+                return;
+              }
+
+              if (currentStep === 2) {
+                setCurrentStep(3);
+                return;
+              }
+
+              if (currentStep === 3) {
+                setCurrentStep(4);
+                return;
+              }
+
+              onClose();
+            }}
+          >
+            {currentStep === 4 ? "Finalizar cadastro" : "Continuar"}
+          </Button>
+        </>
+      }
+    >
+      <div className="manual-student-modal__stepper">
+          <Stepper steps={manualRegistrationSteps} currentStep={currentStep} ariaLabel="Etapas do cadastro de aluno" />
+      </div>
+
+      <div ref={contentRef} className="manual-student-modal__content">
+          {currentStep === 1 ? (
+            <div className="manual-student-modal__form">
+              <label className="manual-student-modal__field manual-student-modal__field--full">
+                <span>
+                  Nome completo <strong>*</strong>
+                </span>
+                <Input
+                  value={personalFormValues.fullName}
+                  showLabel={false}
+                  required
+                  placeholder="Digite o nome completo"
+                  onChange={(event) => updatePersonalField("fullName", event.target.value)}
+                />
+              </label>
+
+              <label className="manual-student-modal__field">
+                <span>
+                  Data de nascimento <strong>*</strong>
+                </span>
+                <Input
+                  value={personalFormValues.birthDate}
+                  showLabel={false}
+                  inputMode="numeric"
+                  maxLength={10}
+                  required
+                  placeholder="dd/mm/aaaa"
+                  onChange={(event) => updatePersonalField("birthDate", event.target.value)}
+                />
+              </label>
+
+              <div className="manual-student-modal__field">
+                <span>Sexo</span>
+                <SelectField
+                  ariaLabel="Selecione o sexo"
+                  value={personalFormValues.sex}
+                  variant="form"
+                  options={sexOptions}
+                  onChange={(event) => updatePersonalField("sex", event.target.value)}
+                />
+              </div>
+
+              <div className="manual-student-modal__field">
+                <span>Estado civil</span>
+                <SelectField
+                  ariaLabel="Selecione o estado civil"
+                  value={personalFormValues.maritalStatus}
+                  variant="form"
+                  options={maritalStatusOptions}
+                  onChange={(event) => updatePersonalField("maritalStatus", event.target.value)}
+                />
+              </div>
+
+              <label className="manual-student-modal__field">
+                <span>Nacionalidade</span>
+                <Input
+                  value={personalFormValues.nationality}
+                  showLabel={false}
+                  placeholder="Ex: Brasileira"
+                  onChange={(event) => updatePersonalField("nationality", event.target.value)}
+                />
+              </label>
+
+              <label className="manual-student-modal__field manual-student-modal__field--full">
+                <span>
+                  E-mail <strong>*</strong>
+                </span>
+                <Input
+                  type="email"
+                  value={personalFormValues.email}
+                  showLabel={false}
+                  required
+                  placeholder="exemplo@email.com"
+                  onChange={(event) => updatePersonalField("email", event.target.value)}
+                />
+              </label>
+
+              <label className="manual-student-modal__field manual-student-modal__field--full">
+                <span>E-mail escolar</span>
+                <Input
+                  type="email"
+                  value={personalFormValues.schoolEmail}
+                  showLabel={false}
+                  placeholder="exemplo@email.com"
+                  onChange={(event) => updatePersonalField("schoolEmail", event.target.value)}
+                />
+              </label>
+
+              <label className="manual-student-modal__field manual-student-modal__field--full">
+                <span>
+                  Telefone <strong>*</strong>
+                </span>
+                <Input
+                  value={personalFormValues.phone}
+                  showLabel={false}
+                  inputMode="numeric"
+                  maxLength={15}
+                  required
+                  placeholder="(00) 00000-0000"
+                  onChange={(event) => updatePersonalField("phone", event.target.value)}
+                />
+              </label>
+            </div>
+          ) : currentStep === 2 ? (
+            <div className="manual-student-modal__documents-content">
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">Documentos</h3>
+                <div className="manual-student-modal__row">
+                  <label className="manual-student-modal__field">
+                    <span>
+                      RG <strong>*</strong>
+                    </span>
+                    <Input
+                      value={documentsFormValues.rg}
+                      showLabel={false}
+                      inputMode="numeric"
+                      maxLength={12}
+                      required
+                      placeholder="00.000.000-0"
+                      onChange={(event) => updateDocumentsField("rg", event.target.value)}
+                    />
+                  </label>
+                  <label className="manual-student-modal__field">
+                    <span>CPF</span>
+                    <Input
+                      value={documentsFormValues.cpf}
+                      showLabel={false}
+                      inputMode="numeric"
+                      maxLength={14}
+                      placeholder="000.000.000-00"
+                      onChange={(event) => updateDocumentsField("cpf", event.target.value)}
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">Endereço</h3>
+                <div className="manual-student-modal__row manual-student-modal__row--wide-narrow">
+                  <label className="manual-student-modal__field">
+                    <span>Rua</span>
+                    <Input
+                      value={documentsFormValues.street}
+                      showLabel={false}
+                      placeholder="Nome da rua"
+                      onChange={(event) => updateDocumentsField("street", event.target.value)}
+                    />
+                  </label>
+                  <label className="manual-student-modal__field">
+                    <span>Número</span>
+                    <Input
+                      value={documentsFormValues.number}
+                      showLabel={false}
+                      placeholder="Nº"
+                      onChange={(event) => updateDocumentsField("number", event.target.value)}
+                    />
+                  </label>
+                </div>
+                <label className="manual-student-modal__field">
+                  <span>Bairro</span>
+                  <Input
+                    value={documentsFormValues.neighborhood}
+                    showLabel={false}
+                    placeholder="Nome do bairro"
+                    onChange={(event) => updateDocumentsField("neighborhood", event.target.value)}
+                  />
+                </label>
+                <div className="manual-student-modal__row manual-student-modal__row--wide-narrow">
+                  <label className="manual-student-modal__field">
+                    <span>Cidade</span>
+                    <Input
+                      value={documentsFormValues.city}
+                      showLabel={false}
+                      placeholder="Nome da cidade"
+                      onChange={(event) => updateDocumentsField("city", event.target.value)}
+                    />
+                  </label>
+                  <div className="manual-student-modal__field">
+                    <span>UF</span>
+                    <SelectField
+                      ariaLabel="Selecione a UF"
+                      value={documentsFormValues.state}
+                      variant="form"
+                      options={stateOptions}
+                      onChange={(event) => updateDocumentsField("state", event.target.value)}
+                    />
+                  </div>
+                </div>
+                <label className="manual-student-modal__field">
+                  <span>CEP</span>
+                  <Input
+                    value={documentsFormValues.zipCode}
+                    showLabel={false}
+                    inputMode="numeric"
+                    maxLength={9}
+                    placeholder="00000-000"
+                    onChange={(event) => updateDocumentsField("zipCode", event.target.value)}
+                  />
+                </label>
+              </section>
+            </div>
+          ) : currentStep === 3 ? (
+            <div className="manual-student-modal__documents-content">
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">
+                  Matrícula <strong>*</strong>
+                </h3>
+                <div className="manual-student-modal__field">
+                  <span>
+                    Módulo <strong>*</strong>
+                  </span>
+                  <SelectField
+                    ariaLabel="Selecione o módulo"
+                    value={enrollmentFormValues.module}
+                    variant="form"
+                    required
+                    options={moduleOptions}
+                    onChange={(event) => updateEnrollmentField("module", event.target.value)}
+                  />
+                </div>
+                <div className="manual-student-modal__field">
+                  <span>
+                    Turma <strong>*</strong>
+                  </span>
+                  <SelectField
+                    ariaLabel="Selecione a turma"
+                    value={enrollmentFormValues.className}
+                    variant="form"
+                    required
+                    options={classOptions}
+                    disabled={!enrollmentFormValues.module}
+                    onChange={(event) => updateEnrollmentField("className", event.target.value)}
+                  />
+                  <small className="manual-student-modal__hint">Selecione um módulo primeiro</small>
+                </div>
+                <div className="manual-student-modal__field">
+                  <span>
+                    Status <strong>*</strong>
+                  </span>
+                  <SelectField
+                    ariaLabel="Selecione o status da matrícula"
+                    value={enrollmentFormValues.status}
+                    variant="form"
+                    required
+                    options={enrollmentStatusOptions}
+                    onChange={(event) => updateEnrollmentField("status", event.target.value)}
+                  />
+                </div>
+              </section>
+
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">Informações familiares</h3>
+                <label className="manual-student-modal__field">
+                  <span>Nome do pai</span>
+                  <Input
+                    value={enrollmentFormValues.fatherName}
+                    showLabel={false}
+                    placeholder="Nome completo do pai"
+                    onChange={(event) => updateEnrollmentField("fatherName", event.target.value)}
+                  />
+                </label>
+                <label className="manual-student-modal__field">
+                  <span>Nome da mãe</span>
+                  <Input
+                    value={enrollmentFormValues.motherName}
+                    showLabel={false}
+                    placeholder="Nome completo da mãe"
+                    onChange={(event) => updateEnrollmentField("motherName", event.target.value)}
+                  />
+                </label>
+              </section>
+            </div>
+          ) : (
+            <div className="manual-student-modal__documents-content">
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">
+                  Documentos necessários <strong>*</strong>
+                </h3>
+                <p className="manual-student-modal__hint manual-student-modal__hint--intro">
+                  É necessário anexar pelo menos um documento de identificação (RG ou CNH)
+                </p>
+
+                <div className="manual-student-modal__upload-grid">
+                  <DocumentUploadField
+                    label="Foto 3x4"
+                    hint=""
+                    selectedFile={attachmentsFormValues.photo}
+                    onFileChange={(file) => updateAttachmentField("photo", file)}
+                    onFileRemove={() => updateAttachmentField("photo", null)}
+                  />
+                  <DocumentUploadField
+                    label="RG"
+                    hint=""
+                    selectedFile={attachmentsFormValues.rg}
+                    onFileChange={(file) => updateAttachmentField("rg", file)}
+                    onFileRemove={() => updateAttachmentField("rg", null)}
+                  />
+                  <DocumentUploadField
+                    label="CNH"
+                    hint=""
+                    selectedFile={attachmentsFormValues.cnh}
+                    onFileChange={(file) => updateAttachmentField("cnh", file)}
+                    onFileRemove={() => updateAttachmentField("cnh", null)}
+                  />
+                  <DocumentUploadField
+                    label="Comprovante de residência"
+                    hint=""
+                    selectedFile={attachmentsFormValues.residenceProof}
+                    onFileChange={(file) => updateAttachmentField("residenceProof", file)}
+                    onFileRemove={() => updateAttachmentField("residenceProof", null)}
+                  />
+                </div>
+              </section>
+            </div>
+          )}
+      </div>
+    </ModalContainer>
+  );
+}
+
+function ScannedStudentRegistrationModal({
+  isOpen,
+  onClose
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [uploadFiles, setUploadFiles] = useState({
+    enrollmentForm: null as File | null,
+    identityDocument: null as File | null,
+    residenceProof: null as File | null,
+    photo: null as File | null
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setCurrentStep(1);
+    setUploadFiles({
+      enrollmentForm: null,
+      identityDocument: null,
+      residenceProof: null,
+      photo: null
+    });
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [currentStep, isOpen]);
+
+  function updateUploadFile(field: keyof typeof uploadFiles, file: File | null) {
+    setUploadFiles((current) => ({
+      ...current,
+      [field]: file
+    }));
+  }
+
+  function UploadCard({
+    field,
+    title,
+    description,
+    icon
+  }: {
+    field: keyof typeof uploadFiles;
+    title: string;
+    description: string;
+    icon: ReactNode;
+  }) {
+    return (
+      <article className="scanned-student-modal__upload-card">
+        <div className="scanned-student-modal__upload-card-header">
+          <span className="scanned-student-modal__document-icon" aria-hidden="true">
+            {icon}
+          </span>
+          <div>
+            <strong>{title}</strong>
+            <span>{description}</span>
+          </div>
+        </div>
+        <DocumentUploadField
+          className="scanned-student-modal__upload-field"
+          showLabel={false}
+          uploadTitle="Clique para enviar"
+          hint="ou arraste aqui"
+          attachedHint="Clique para alterar ou arraste aqui"
+          statusLabel="Enviado"
+          showImagePreview
+          selectedFile={uploadFiles[field]}
+          onFileChange={(file) => updateUploadFile(field, file)}
+          onFileRemove={() => updateUploadFile(field, null)}
+        />
+      </article>
+    );
+  }
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-student-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle={currentStep === 1 ? "Prepare os documentos para melhor leitura" : "Envie os documentos do aluno"}
+      overlayClassName="scanned-student-modal-overlay"
+      className="scanned-student-modal"
+      headerClassName="scanned-student-modal__header"
+      copyClassName="scanned-student-modal__copy"
+      closeButtonClassName="scanned-student-modal__close"
+      bodyClassName="scanned-student-modal__body"
+      footerClassName="scanned-student-modal__footer"
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            className="scanned-student-modal__cancel"
+            onClick={() => {
+              if (currentStep === 1) {
+                onClose();
+                return;
+              }
+
+              setCurrentStep(1);
+            }}
+          >
+            {currentStep === 1 ? "Cancelar" : "Voltar"}
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="scanned-student-modal__continue"
+            disabled={currentStep === 2}
+            onClick={() => {
+              if (currentStep === 1) {
+                setCurrentStep(2);
+              }
+            }}
+          >
+            Continuar
+          </Button>
+        </>
+      }
+    >
+      <div className="scanned-student-modal__stepper">
+        <Stepper
+          steps={scannedRegistrationSteps}
+          currentStep={currentStep}
+          ariaLabel="Etapas do cadastro via escaneamento"
+          className="scanned-student-modal__stepper-content"
+        />
+      </div>
+
+      <div ref={contentRef} className="scanned-student-modal__content">
+        {currentStep === 1 ? (
+          <>
+            <section className="scanned-student-modal__intro">
+              <span className="scanned-student-modal__intro-icon" aria-hidden="true">
+                <Upload />
+              </span>
+              <h3>Prepare os Documentos</h3>
+              <p>Siga estas orientações para obter os melhores resultados</p>
+            </section>
+
+            <section className="scanned-student-modal__tips-grid">
+              <article className="scanned-student-modal__tip-card">
+                <h4>✓ Faça</h4>
+                <ul>
+                  <li>
+                    <CheckCircle2 aria-hidden="true" />
+                    <span>Use boa iluminação</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 aria-hidden="true" />
+                    <span>Mantenha o documento inteiro visível</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 aria-hidden="true" />
+                    <span>Coloque sobre fundo neutro</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 aria-hidden="true" />
+                    <span>Tire fotos nítidas e focadas</span>
+                  </li>
+                </ul>
+              </article>
+
+              <article className="scanned-student-modal__tip-card">
+                <h4>✗ Evite</h4>
+                <ul>
+                  <li>
+                    <AlertCircle aria-hidden="true" />
+                    <span>Sombras sobre o documento</span>
+                  </li>
+                  <li>
+                    <AlertCircle aria-hidden="true" />
+                    <span>Fotos borradas ou tremidas</span>
+                  </li>
+                  <li>
+                    <AlertCircle aria-hidden="true" />
+                    <span>Reflexos de luz ou flash</span>
+                  </li>
+                  <li>
+                    <AlertCircle aria-hidden="true" />
+                    <span>Partes cortadas do documento</span>
+                  </li>
+                </ul>
+              </article>
+            </section>
+
+            <section className="scanned-student-modal__documents">
+              <h4>Documentos Aceitos</h4>
+              <div className="scanned-student-modal__documents-grid">
+                <article className="scanned-student-modal__document-card">
+                  <span className="scanned-student-modal__document-icon" aria-hidden="true">
+                    <FileText />
+                  </span>
+                  <div>
+                    <strong>Documento de Identidade</strong>
+                    <span>RG ou CNH</span>
+                  </div>
+                </article>
+
+                <article className="scanned-student-modal__document-card">
+                  <span className="scanned-student-modal__document-icon" aria-hidden="true">
+                    <Home />
+                  </span>
+                  <div>
+                    <strong>Comprovante de Residência</strong>
+                    <span>Conta de luz, água ou telefone</span>
+                  </div>
+                </article>
+
+                <article className="scanned-student-modal__document-card">
+                  <span className="scanned-student-modal__document-icon" aria-hidden="true">
+                    <ClipboardCheck />
+                  </span>
+                  <div>
+                    <strong>Formulário de Matrícula</strong>
+                    <span>Formulário preenchido</span>
+                  </div>
+                </article>
+
+                <article className="scanned-student-modal__document-card">
+                  <span className="scanned-student-modal__document-icon" aria-hidden="true">
+                    <FileImage />
+                  </span>
+                  <div>
+                    <strong>Foto 3x4</strong>
+                    <span>Foto do aluno</span>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </>
+        ) : (
+          <>
+            <section className="scanned-student-modal__intro scanned-student-modal__intro--upload">
+              <h3>Envie os Documentos</h3>
+              <p>Você pode enviar um ou mais documentos. O sistema irá extrair os dados automaticamente.</p>
+            </section>
+
+            <section className="scanned-student-modal__upload-grid">
+              <UploadCard
+                field="enrollmentForm"
+                title="Formulário de Matrícula"
+                description="Formulário preenchido"
+                icon={<ClipboardCheck />}
+              />
+              <UploadCard
+                field="identityDocument"
+                title="Documento de Identidade"
+                description="RG ou CNH"
+                icon={<FileText />}
+              />
+              <UploadCard
+                field="residenceProof"
+                title="Comprovante de Residência"
+                description="Conta de luz, água ou telefone"
+                icon={<Home />}
+              />
+              <UploadCard
+                field="photo"
+                title="Foto 3x4"
+                description="Foto do aluno"
+                icon={<FileImage />}
+              />
+            </section>
+          </>
+        )}
+      </div>
+    </ModalContainer>
   );
 }
 
@@ -1267,6 +2284,9 @@ export function StudentsPageDrawer() {
   const [studentSortDirection, setStudentSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDrawerClosing, setIsDrawerClosing] = useState(false);
+  const [isRegistrationTypeModalOpen, setIsRegistrationTypeModalOpen] = useState(false);
+  const [isManualStudentModalOpen, setIsManualStudentModalOpen] = useState(false);
+  const [isScannedStudentModalOpen, setIsScannedStudentModalOpen] = useState(false);
   const [isDocumentUploadModalOpen, setIsDocumentUploadModalOpen] = useState(false);
   const [documentUploadError, setDocumentUploadError] = useState("");
   const [personalAttachmentsByStudent, setPersonalAttachmentsByStudent] = useState<Record<number, PersonalAttachmentRecord[]>>({});
@@ -1291,6 +2311,9 @@ export function StudentsPageDrawer() {
   });
 
   const closeDrawer = () => {
+    setIsRegistrationTypeModalOpen(false);
+    setIsManualStudentModalOpen(false);
+    setIsScannedStudentModalOpen(false);
     closeAttachmentDeleteModal();
     closeDocumentUploadModal();
     closeJustificationModal();
@@ -1318,7 +2341,13 @@ export function StudentsPageDrawer() {
   }, [selectedStudent]);
 
   useEffect(() => {
-    const isAnyModalOpen = Boolean(attachmentPendingDelete) || isDocumentUploadModalOpen || isJustificationModalOpen;
+    const isAnyModalOpen =
+      isRegistrationTypeModalOpen ||
+      isManualStudentModalOpen ||
+      isScannedStudentModalOpen ||
+      Boolean(attachmentPendingDelete) ||
+      isDocumentUploadModalOpen ||
+      isJustificationModalOpen;
     if (!isAnyModalOpen) {
       return undefined;
     }
@@ -1328,6 +2357,21 @@ export function StudentsPageDrawer() {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (isRegistrationTypeModalOpen) {
+          setIsRegistrationTypeModalOpen(false);
+          return;
+        }
+
+        if (isManualStudentModalOpen) {
+          setIsManualStudentModalOpen(false);
+          return;
+        }
+
+        if (isScannedStudentModalOpen) {
+          setIsScannedStudentModalOpen(false);
+          return;
+        }
+
         if (attachmentPendingDelete) {
           closeAttachmentDeleteModal();
           return;
@@ -1348,7 +2392,14 @@ export function StudentsPageDrawer() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [attachmentPendingDelete, isDocumentUploadModalOpen, isJustificationModalOpen]);
+  }, [
+    attachmentPendingDelete,
+    isDocumentUploadModalOpen,
+    isJustificationModalOpen,
+    isManualStudentModalOpen,
+    isRegistrationTypeModalOpen,
+    isScannedStudentModalOpen
+  ]);
 
   const classOptions = useMemo(() => getClassOptions(moduleFilter), [moduleFilter]);
   const selectedStudentAttachments = selectedStudent ? personalAttachmentsByStudent[selectedStudent.id] ?? [] : [];
@@ -1715,7 +2766,9 @@ export function StudentsPageDrawer() {
             <p>Gerencie o cadastro completo de alunos.</p>
           </div>
 
-          <Button icon={<Plus aria-hidden="true" />}>Adicionar aluno</Button>
+          <Button icon={<Plus aria-hidden="true" />} onClick={() => setIsRegistrationTypeModalOpen(true)}>
+            Adicionar aluno
+          </Button>
         </section>
 
         <section className="filters" aria-label="Busca e filtros">
@@ -1989,6 +3042,26 @@ export function StudentsPageDrawer() {
           />
         </div>
       ) : null}
+      <RegistrationTypeModal
+        isOpen={isRegistrationTypeModalOpen}
+        onClose={() => setIsRegistrationTypeModalOpen(false)}
+        onSelectManual={() => {
+          setIsRegistrationTypeModalOpen(false);
+          setIsManualStudentModalOpen(true);
+        }}
+        onSelectOcr={() => {
+          setIsRegistrationTypeModalOpen(false);
+          setIsScannedStudentModalOpen(true);
+        }}
+      />
+      <ManualStudentRegistrationModal
+        isOpen={isManualStudentModalOpen}
+        onClose={() => setIsManualStudentModalOpen(false)}
+      />
+      <ScannedStudentRegistrationModal
+        isOpen={isScannedStudentModalOpen}
+        onClose={() => setIsScannedStudentModalOpen(false)}
+      />
       {selectedStudent ? (
         <StudentAttachmentDeleteModal
           isOpen={Boolean(attachmentPendingDelete)}
