@@ -1,4 +1,4 @@
-import { assetUrls } from "../data/assets";
+import { ArrowDown, ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { students } from "../data/students";
 import { StatusBadge } from "./ui/status-badge";
 import { TableCard } from "./ui/table-card";
@@ -11,7 +11,7 @@ function FilterButton({ label }: FilterButtonProps) {
   return (
     <button className="filter-button" type="button">
       <span>{label}</span>
-      <img src={assetUrls.icons.caretDown} alt="" aria-hidden="true" />
+      <ChevronDown aria-hidden="true" />
     </button>
   );
 }
@@ -38,14 +38,14 @@ export function StudentsPage() {
         </div>
 
         <button className="primary-button" type="button">
-          <img src={assetUrls.icons.plus} alt="" aria-hidden="true" />
+          <Plus aria-hidden="true" />
           <span>Adicionar aluno</span>
         </button>
       </section>
 
       <section className="filters" aria-label="Busca e filtros">
         <label className="search-field">
-          <img src={assetUrls.icons.search} alt="" aria-hidden="true" />
+          <Search aria-hidden="true" />
           <input
             type="text"
             placeholder="Buscar por nome, telefone ou email..."
@@ -75,7 +75,7 @@ export function StudentsPage() {
                 <th>
                   <div className="header-sort">
                     <span>Status</span>
-                    <img src={assetUrls.icons.arrowDown} alt="" aria-hidden="true" />
+                    <ArrowDown aria-hidden="true" />
                   </div>
                 </th>
                 <th>Contato</th>
@@ -126,10 +126,10 @@ export function StudentsPage() {
                   <td>
                     <div className="row-actions">
                       <button className="icon-button" type="button" aria-label={`Excluir ${student.name}`}>
-                        <img src={assetUrls.icons.trash} alt="" aria-hidden="true" />
+                        <Trash2 aria-hidden="true" />
                       </button>
                       <button className="icon-button" type="button" aria-label={`Editar ${student.name}`}>
-                        <img src={assetUrls.icons.edit} alt="" aria-hidden="true" />
+                        <Pencil aria-hidden="true" />
                       </button>
                     </div>
                   </td>
@@ -141,7 +141,7 @@ export function StudentsPage() {
 
         <footer className="pagination">
           <button className="pagination__button" type="button">
-            <img src={assetUrls.icons.arrowLeft} alt="" aria-hidden="true" />
+            <ChevronLeft aria-hidden="true" />
             <span>Previous</span>
           </button>
 
@@ -159,7 +159,7 @@ export function StudentsPage() {
 
           <button className="pagination__button" type="button">
             <span>Next</span>
-            <img src={assetUrls.icons.arrowRight} alt="" aria-hidden="true" />
+            <ChevronRight aria-hidden="true" />
           </button>
         </footer>
       </TableCard>

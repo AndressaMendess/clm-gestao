@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
 
 import {
+  ClipboardList,
+  GraduationCap,
+  Home,
+  LogOut,
+  Music2,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
   ShieldPlus,
+  Users,
   UserRound
 } from "lucide-react";
 
@@ -36,17 +42,17 @@ const primaryItems: SidebarItem[] = [
   {
     id: "overview",
     label: "Visão Geral",
-    icon: <img className="nav-item__icon" src={assetUrls.icons.overview} alt="" aria-hidden="true" />
+    icon: <Home className="nav-item__vector-icon" size={20} strokeWidth={1.9} aria-hidden="true" />
   },
   {
     id: "students",
     label: "Alunos",
-    icon: <img className="nav-item__icon" src={assetUrls.icons.students} alt="" aria-hidden="true" />
+    icon: <Users className="nav-item__vector-icon" size={20} strokeWidth={1.9} aria-hidden="true" />
   },
   {
     id: "attendance",
     label: "Presenças",
-    icon: <img className="nav-item__icon" src={assetUrls.icons.attendance} alt="" aria-hidden="true" />
+    icon: <ClipboardList className="nav-item__vector-icon" size={20} strokeWidth={1.9} aria-hidden="true" />
   }
 ];
 
@@ -54,12 +60,12 @@ const secondaryItems: SidebarItem[] = [
   {
     id: "classes",
     label: "Turmas",
-    icon: <img className="nav-item__icon" src={assetUrls.icons.classes} alt="" aria-hidden="true" />
+    icon: <GraduationCap className="nav-item__vector-icon" size={20} strokeWidth={1.9} aria-hidden="true" />
   },
   {
     id: "modules",
     label: "Módulos",
-    icon: <img className="nav-item__icon" src={assetUrls.icons.modules} alt="" aria-hidden="true" />
+    icon: <Music2 className="nav-item__vector-icon" size={20} strokeWidth={1.9} aria-hidden="true" />
   },
   {
     id: "admins",
@@ -164,7 +170,7 @@ export function AppSidebar({
         </div>
 
         <button className={`logout-button ${collapsed ? "logout-button--collapsed" : ""}`} type="button" aria-label="Sair">
-          <img src={assetUrls.icons.logout} alt="" aria-hidden="true" />
+          <LogOut className="nav-item__vector-icon" size={18} strokeWidth={2} aria-hidden="true" />
           <span>Sair</span>
           {collapsed ? <span className="nav-item__tooltip">Sair</span> : null}
         </button>
