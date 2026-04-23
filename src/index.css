@@ -13,7 +13,7 @@
   --ring: var(--color-brand-primary-soft);
   --muted: var(--color-background-secondary);
   --muted-foreground: var(--color-content-tertiary);
-  --radius: 10px;
+  --radius: 16px;
 }
 
 @theme inline {

@@ -1,4 +1,6 @@
-﻿export type AttendanceStatus = "Presente" | "Ausente";
+﻿import { classOptionsByModule, moduleOptions } from "./filters";
+
+export type AttendanceStatus = "Presente" | "Ausente";
 export type AttendanceSessionStatus = "presente" | "nao_registrado";
 
 export type AttendanceStudentRecord = {
@@ -87,56 +89,51 @@ export const attendanceHistory: AttendanceHistoryEntry[] = [
   }
 ];
 
-export const attendanceClassOptions: AttendanceClassOption[] = [
-  {
-    id: 101,
-    module: "Módulo I",
-    moduleLabel: "Módulo I",
-    title: "Módulo I - Classe 1",
-    teacherName: "Prof. Maria Silva",
-    studentCount: 40
-  },
-  {
-    id: 102,
-    module: "Módulo I",
-    moduleLabel: "Módulo I",
-    title: "Módulo I - Classe 2",
-    teacherName: "Prof. Maria Silva",
-    studentCount: 40
-  },
-  {
-    id: 201,
-    module: "Módulo II",
-    moduleLabel: "Módulo II",
-    title: "Módulo II - Teoria",
-    teacherName: "Prof. Maria Silva",
-    studentCount: 40
-  },
-  {
-    id: 202,
-    module: "Módulo II",
-    moduleLabel: "Módulo II",
-    title: "Módulo II - Violino",
-    teacherName: "Prof. Maria Silva",
-    studentCount: 40
-  },
-  {
-    id: 301,
-    module: "Módulo III",
-    moduleLabel: "Módulo III",
-    title: "Módulo III - Teoria",
-    teacherName: "Prof. Maria Silva",
-    studentCount: 40
-  },
-  {
-    id: 302,
-    module: "Módulo III",
-    moduleLabel: "Módulo III",
-    title: "Módulo III - Violino",
-    teacherName: "Prof. Maria Silva",
-    studentCount: 40
-  }
-];
+export const attendanceClassOptions: AttendanceClassOption[] = moduleOptions
+  .filter((module): module is AttendanceClassOption["module"] => module !== "Todos")
+  .flatMap((module, moduleIndex) =>
+    classOptionsByModule[module].map((className, classIndex) => ({
+      id: (moduleIndex + 1) * 100 + classIndex + 1,
+      module,
+      moduleLabel: module,
+      title: `${module} - ${className}`,
+      teacherName: "Prof. Maria Silva",
+      studentCount: 40
+    }))
+  );
+
+const attendanceStudentNames = [
+  "Ana Clara Souza",
+  "Bruno Henrique Lima",
+  "Carolina Fernandes",
+  "Diego Martins",
+  "Eduarda Ribeiro",
+  "Felipe Nascimento",
+  "Gabriela Santos",
+  "Henrique Almeida",
+  "Isabela Costa",
+  "João Pedro Oliveira"
+] as const;
+
+function toInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function createSessionStudents(moduleLabel: string, seedId: number): AttendanceSessionStudent[] {
+  return attendanceStudentNames.map((name, index) => ({
+    id: seedId * 100 + index + 1,
+    name,
+    moduleLabel,
+    status: "nao_registrado",
+    recordedAt: null,
+    avatarInitials: toInitials(name)
+  }));
+}
 
 const attendanceSessionTemplates: Record<number, AttendanceSession> = {
   101: {
@@ -147,49 +144,7 @@ const attendanceSessionTemplates: Record<number, AttendanceSession> = {
     className: "Classe 1",
     teacherName: "Prof. Maria Silva",
     dateLabel: "12/01/2025, quarta-feira.",
-    students: [
-      {
-        id: 1001,
-        name: "Olivia Rhye",
-        moduleLabel: "Módulo I",
-        status: "nao_registrado",
-        recordedAt: null,
-        avatarImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80"
-      },
-      {
-        id: 1002,
-        name: "Phoenix Baker",
-        moduleLabel: "Módulo I",
-        status: "nao_registrado",
-        recordedAt: null,
-        avatarImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80"
-      },
-      {
-        id: 1003,
-        name: "Lana Steiner",
-        moduleLabel: "Módulo I",
-        status: "nao_registrado",
-        recordedAt: null,
-        avatarImage: "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=80&q=80"
-      },
-      {
-        id: 1004,
-        name: "Demi Wilkinson",
-        moduleLabel: "Módulo I",
-        status: "nao_registrado",
-        recordedAt: null,
-        avatarImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=80&q=80"
-      },
-      {
-        id: 1005,
-        name: "Candice Wu",
-        moduleLabel: "Módulo I",
-        status: "nao_registrado",
-        recordedAt: null,
-        avatarInitials: "CW",
-        avatarColor: "#F4EBFF"
-      }
-    ]
+    students: createSessionStudents("Módulo I", 101)
   }
 };
 
@@ -236,14 +191,7 @@ export function getAttendanceSessionByClassId(classId: number): AttendanceSessio
     className: classOption.title.replace(`${classOption.moduleLabel} - `, ""),
     teacherName: classOption.teacherName,
     dateLabel: formatCurrentDateLabel(),
-    students: Array.from({ length: 5 }, (_, index) => ({
-      id: classOption.id * 10 + index + 1,
-      name: `Aluno ${index + 1}`,
-      moduleLabel: classOption.moduleLabel,
-      status: "nao_registrado",
-      recordedAt: null,
-      avatarInitials: `A${index + 1}`
-    }))
+    students: createSessionStudents(classOption.moduleLabel, classOption.id)
   };
 }
 
