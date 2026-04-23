@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
 import { attendanceHistory, type AttendanceHistoryEntry } from "../data/attendance";
 import { AttendanceCallPage } from "./AttendanceCallPage";
@@ -10,6 +10,8 @@ type AttendanceView = "history" | "start" | "call";
 type AttendancePageProps = {
   initialView?: AttendanceView;
   initialClassId?: number | null;
+  entries?: AttendanceHistoryEntry[];
+  onEntriesChange?: Dispatch<SetStateAction<AttendanceHistoryEntry[]>>;
   onOpenHistory?: () => void;
   onOpenStart?: () => void;
   onOpenCall?: (classId: number) => void;
@@ -18,11 +20,15 @@ type AttendancePageProps = {
 export function AttendancePage({
   initialView = "history",
   initialClassId = null,
+  entries,
+  onEntriesChange,
   onOpenHistory,
   onOpenStart,
   onOpenCall
 }: AttendancePageProps) {
-  const [historyEntries, setHistoryEntries] = useState<AttendanceHistoryEntry[]>(attendanceHistory);
+  const [internalHistoryEntries, setInternalHistoryEntries] = useState<AttendanceHistoryEntry[]>(attendanceHistory);
+  const historyEntries = entries ?? internalHistoryEntries;
+  const setHistoryEntries = onEntriesChange ?? setInternalHistoryEntries;
   const [view, setView] = useState<AttendanceView>(initialView);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(initialClassId);
 

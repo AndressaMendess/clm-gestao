@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Sidebar, type SidebarPage } from "./components/Sidebar";
+import { attendanceHistory, type AttendanceHistoryEntry } from "./data/attendance";
 import { TopBar } from "./components/TopBar";
 import { AttendancePage } from "./pages/AttendancePage";
 import { OverviewPage } from "./pages/OverviewPage";
@@ -20,10 +21,14 @@ function getActivePage(pathname: string): SidebarPage {
 }
 
 function AttendanceCallRoute({
+  entries,
+  onEntriesChange,
   onOpenHistory,
   onOpenStart,
   onOpenCall
 }: {
+  entries: AttendanceHistoryEntry[];
+  onEntriesChange: Dispatch<SetStateAction<AttendanceHistoryEntry[]>>;
   onOpenHistory: () => void;
   onOpenStart: () => void;
   onOpenCall: (classId: number) => void;
@@ -39,6 +44,8 @@ function AttendanceCallRoute({
     <AttendancePage
       initialView="call"
       initialClassId={parsedClassId}
+      entries={entries}
+      onEntriesChange={onEntriesChange}
       onOpenHistory={onOpenHistory}
       onOpenStart={onOpenStart}
       onOpenCall={onOpenCall}
@@ -50,6 +57,7 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const activePage = getActivePage(location.pathname);
+  const [attendanceEntries, setAttendanceEntries] = useState<AttendanceHistoryEntry[]>(attendanceHistory);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const openAttendanceHistory = () => navigate("/presencas");
@@ -68,6 +76,15 @@ export default function App() {
       document.body.style.overflow = originalOverflow;
     };
   }, [isSidebarOpen]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    const scrollContainers = document.querySelectorAll<HTMLElement>(".dashboard-surface, .app-content");
+    scrollContainers.forEach((container) => {
+      container.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  }, [location.pathname]);
 
   return (
     <div className={`app-shell ${isSidebarCollapsed ? "app-shell--sidebar-collapsed" : ""}`}>
@@ -110,6 +127,8 @@ export default function App() {
               element={
                 <AttendancePage
                   initialView="history"
+                  entries={attendanceEntries}
+                  onEntriesChange={setAttendanceEntries}
                   onOpenHistory={openAttendanceHistory}
                   onOpenStart={openAttendanceStart}
                   onOpenCall={openAttendanceCall}
@@ -121,6 +140,8 @@ export default function App() {
               element={
                 <AttendancePage
                   initialView="start"
+                  entries={attendanceEntries}
+                  onEntriesChange={setAttendanceEntries}
                   onOpenHistory={openAttendanceHistory}
                   onOpenStart={openAttendanceStart}
                   onOpenCall={openAttendanceCall}
@@ -131,6 +152,8 @@ export default function App() {
               path="/presencas/chamada/:classId"
               element={
                 <AttendanceCallRoute
+                  entries={attendanceEntries}
+                  onEntriesChange={setAttendanceEntries}
                   onOpenHistory={openAttendanceHistory}
                   onOpenStart={openAttendanceStart}
                   onOpenCall={openAttendanceCall}
