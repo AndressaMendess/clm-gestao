@@ -38,11 +38,6 @@
   box-shadow: var(--shadow-surface-soft);
 }
 
-
-.students-page {
-  padding: 24px 16px 32px;
-}
-
 .students-page .page-header {
   padding-top: 0;
 }

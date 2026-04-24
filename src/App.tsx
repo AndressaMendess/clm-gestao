@@ -3,21 +3,43 @@ import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "re
 
 import { Sidebar, type SidebarPage } from "./components/Sidebar";
 import { attendanceHistory, type AttendanceHistoryEntry } from "./data/attendance";
+import { getModuleConfigBySlug, type ModuleSlug } from "./data/modules";
 import { TopBar } from "./components/TopBar";
 import { AttendancePage } from "./pages/AttendancePage";
+import { ModuleClassesPage } from "./pages/ModuleClassesPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { StudentsPageDrawer } from "./pages/StudentsPageDrawer";
+import { TeachersPage } from "./pages/TeachersPage";
 
 function getActivePage(pathname: string): SidebarPage {
   if (pathname.startsWith("/alunos")) {
     return "students";
   }
 
+  if (pathname.startsWith("/professores")) {
+    return "teachers";
+  }
+
   if (pathname.startsWith("/presencas")) {
     return "attendance";
   }
 
+  if (pathname.startsWith("/modulos/")) {
+    return "modules";
+  }
+
   return "overview";
+}
+
+function getActiveModule(pathname: string): ModuleSlug | null {
+  if (!pathname.startsWith("/modulos/")) {
+    return null;
+  }
+
+  const slug = pathname.replace("/modulos/", "").split("/")[0];
+  const moduleConfig = getModuleConfigBySlug(slug);
+
+  return (moduleConfig?.slug as ModuleSlug | undefined) ?? null;
 }
 
 function AttendanceCallRoute({
@@ -53,10 +75,22 @@ function AttendanceCallRoute({
   );
 }
 
+function ModuleClassesRoute({ onOpenClass }: { onOpenClass: (classId: number) => void }) {
+  const { moduleSlug } = useParams<{ moduleSlug: string }>();
+  const moduleConfig = moduleSlug ? getModuleConfigBySlug(moduleSlug) : undefined;
+
+  if (!moduleConfig) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <ModuleClassesPage moduleSlug={moduleConfig.slug} onOpenClass={onOpenClass} />;
+}
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const activePage = getActivePage(location.pathname);
+  const activeModule = getActiveModule(location.pathname);
   const [attendanceEntries, setAttendanceEntries] = useState<AttendanceHistoryEntry[]>(attendanceHistory);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -90,6 +124,7 @@ export default function App() {
     <div className={`app-shell ${isSidebarCollapsed ? "app-shell--sidebar-collapsed" : ""}`}>
       <Sidebar
         activePage={activePage}
+        activeModule={activeModule}
         isOpen={isSidebarOpen}
         isCollapsed={isSidebarCollapsed}
         onClose={() => setIsSidebarOpen(false)}
@@ -98,10 +133,16 @@ export default function App() {
           const routeByPage: Record<SidebarPage, string> = {
             overview: "/",
             students: "/alunos",
-            attendance: "/presencas"
+            teachers: "/professores",
+            attendance: "/presencas",
+            modules: "/modulos/modulo-i"
           };
 
           navigate(routeByPage[page]);
+          setIsSidebarOpen(false);
+        }}
+        onNavigateModule={(moduleSlug) => {
+          navigate(`/modulos/${moduleSlug}`);
           setIsSidebarOpen(false);
         }}
       />
@@ -122,6 +163,8 @@ export default function App() {
               }
             />
             <Route path="/alunos" element={<StudentsPageDrawer />} />
+            <Route path="/professores" element={<TeachersPage />} />
+            <Route path="/modulos/:moduleSlug" element={<ModuleClassesRoute onOpenClass={openAttendanceCall} />} />
             <Route
               path="/presencas"
               element={

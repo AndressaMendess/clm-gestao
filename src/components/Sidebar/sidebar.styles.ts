@@ -40,7 +40,7 @@ export const sidebarBrandStyles = cva(
   {
     variants: {
       collapsed: {
-        true: "justify-center px-3 max-[960px]:justify-between max-[960px]:px-4",
+        true: "flex-col-reverse justify-start gap-4 px-3 max-[960px]:flex-row max-[960px]:justify-between max-[960px]:gap-3 max-[960px]:px-4",
         false: "justify-between"
       }
     },
@@ -53,7 +53,7 @@ export const sidebarBrandStyles = cva(
 export const sidebarBrandRowStyles = cva("relative flex w-full items-center justify-between gap-3", {
   variants: {
     collapsed: {
-      true: "absolute right-[-18px] top-6 w-auto max-[960px]:static max-[960px]:w-full",
+      true: "static w-auto justify-center max-[960px]:w-full max-[960px]:justify-between",
       false: "w-full"
     }
   },
@@ -67,7 +67,7 @@ export const sidebarToggleStyles = cva(
   {
     variants: {
       collapsed: {
-        true: "absolute right-[-18px] top-6",
+        true: "",
         false: ""
       }
     },
@@ -93,6 +93,71 @@ export const sidebarContentStyles = cva("flex flex-1 flex-col gap-4", {
 });
 
 export const sidebarNavStyles = "flex flex-col gap-1";
+export const sidebarDropdownTriggerStyles = cva(
+  "group relative flex w-full items-center gap-3 rounded-[56px] px-4 py-3.5 text-left transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-outline-mix)] focus-visible:ring-offset-2",
+  {
+    variants: {
+      collapsed: {
+        true: "justify-center max-[960px]:justify-start",
+        false: "justify-start"
+      },
+      open: {
+        true: "bg-[var(--color-brand-primary-main)] text-[var(--color-content-always-light)] shadow-[inset_0_4px_12px_0_var(--primitive-orange-400),0_10px_15px_0_var(--primitive-orange-200)] hover:bg-[var(--color-button-primary-background-hover)]",
+        false:
+          "text-[var(--color-content-tertiary)] hover:bg-[color-mix(in_srgb,var(--color-background-primary)_86%,transparent)] hover:translate-x-px"
+      }
+    },
+    defaultVariants: {
+      collapsed: false,
+      open: false
+    }
+  }
+);
+
+export const sidebarDropdownChevronStyles = cva("ml-auto h-5 w-5 shrink-0 transition-transform duration-150", {
+  variants: {
+    open: {
+      true: "rotate-180",
+      false: "rotate-0"
+    },
+    collapsed: {
+      true: "hidden max-[960px]:block",
+      false: "block"
+    }
+  },
+  defaultVariants: {
+    open: false,
+    collapsed: false
+  }
+});
+
+export const sidebarSubnavStyles = cva("flex flex-col gap-1 pl-5 pr-0.5 pt-1", {
+  variants: {
+    collapsed: {
+      true: "hidden max-[960px]:flex",
+      false: "flex"
+    }
+  },
+  defaultVariants: {
+    collapsed: false
+  }
+});
+
+export const sidebarSubnavItemStyles = cva(
+  "w-full rounded-[40px] px-6 py-3 text-left text-[var(--text-heading-h5-size)] leading-[var(--text-heading-5-line-height)] tracking-[var(--text-heading-letter-spacing)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-outline-mix)] focus-visible:ring-offset-2",
+  {
+    variants: {
+      active: {
+        true: "bg-[color-mix(in_srgb,var(--color-content-always-light)_40%,transparent)] text-[var(--color-brand-primary-main)]",
+        false: "text-[var(--color-content-tertiary)] hover:bg-[color-mix(in_srgb,var(--color-content-always-light)_22%,transparent)]"
+      }
+    },
+    defaultVariants: {
+      active: false
+    }
+  }
+);
+
 export const sidebarDividerStyles = cva("h-px w-full bg-[var(--color-border-primary)]", {
   variants: {
     collapsed: {

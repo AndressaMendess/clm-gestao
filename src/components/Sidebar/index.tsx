@@ -1,4 +1,5 @@
-import {
+﻿import {
+  ChevronDown,
   ClipboardList,
   Home,
   LogOut,
@@ -10,8 +11,10 @@ import {
   Users,
   X
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "@/src/lib/utils";
 
+import { getAllModuleConfigs, type ModuleSlug } from "@/src/data/modules";
 import { assetUrls } from "../../data/assets";
 import { DashboardNavItem } from "../dashboard/DashboardNavItem";
 import {
@@ -20,6 +23,8 @@ import {
   sidebarBrandStyles,
   sidebarCloseStyles,
   sidebarContentStyles,
+  sidebarDropdownChevronStyles,
+  sidebarDropdownTriggerStyles,
   sidebarDividerStyles,
   sidebarFooterStyles,
   sidebarLogoStyles,
@@ -27,6 +32,8 @@ import {
   sidebarNavStyles,
   sidebarOverlayStyles,
   sidebarShellStyles,
+  sidebarSubnavItemStyles,
+  sidebarSubnavStyles,
   sidebarToggleStyles,
   sidebarUserMetaStyles,
   sidebarUserStyles
@@ -35,26 +42,36 @@ import type { SidebarNavItem, SidebarPage, SidebarProps } from "./sidebar.types"
 export type { SidebarPage, SidebarProps } from "./sidebar.types";
 
 const primaryItems: SidebarNavItem[] = [
-  { page: "overview", label: "Vis\u00E3o Geral", icon: Home },
+  { page: "overview", label: "Visão Geral", icon: Home },
   { page: "students", label: "Alunos", icon: Users },
-  { page: "attendance", label: "Presen\u00E7as", icon: ClipboardList }
+  { page: "attendance", label: "Presenças", icon: ClipboardList }
 ];
 
 const secondaryItems: SidebarNavItem[] = [
-  { label: "M\u00F3dulos", icon: Music2 },
-  { label: "Professores", icon: UserRound },
-  { label: "Configura\u00E7\u00F5es", icon: Settings }
+  { page: "teachers", label: "Professores", icon: UserRound },
+  { label: "Configurações", icon: Settings }
 ];
+
+const moduleItems = getAllModuleConfigs();
 
 export function Sidebar({
   activePage,
+  activeModule = null,
   isOpen = false,
   isCollapsed = false,
   onClose,
   onToggleCollapse,
-  onNavigate
+  onNavigate,
+  onNavigateModule
 }: SidebarProps) {
+  const [isModulesOpen, setIsModulesOpen] = useState(false);
+  const [selectedModule, setSelectedModule] = useState<ModuleSlug | null>(activeModule);
   const ToggleIcon = isCollapsed ? PanelLeftOpen : PanelLeftClose;
+
+  useEffect(() => {
+    setSelectedModule(activeModule);
+  }, [activeModule]);
+
   const renderNavItem = (item: SidebarNavItem) => {
     const onClick = item.page ? () => onNavigate(item.page as SidebarPage) : undefined;
 
@@ -103,6 +120,42 @@ export function Sidebar({
           <div className={sidebarDividerStyles({ collapsed: isCollapsed })} />
 
           <nav className={sidebarNavStyles} aria-label="Navegacao secundaria">
+            <button
+              className={sidebarDropdownTriggerStyles({ collapsed: isCollapsed, open: isModulesOpen })}
+              type="button"
+              aria-expanded={isModulesOpen}
+              aria-controls="sidebar-modules-subitems"
+              aria-label={isCollapsed ? "Módulos" : undefined}
+              onClick={() => setIsModulesOpen((current) => !current)}
+            >
+              <Music2 className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <span
+                className={cn(
+                  "text-[var(--text-body-large-size)] leading-[var(--text-body-line-height)] tracking-[var(--text-body-letter-spacing)]",
+                  isCollapsed ? "hidden max-[960px]:inline" : "inline"
+                )}
+              >
+                Módulos
+              </span>
+              <ChevronDown className={sidebarDropdownChevronStyles({ open: isModulesOpen, collapsed: isCollapsed })} aria-hidden="true" />
+            </button>
+            {isModulesOpen ? (
+              <div id="sidebar-modules-subitems" className={sidebarSubnavStyles({ collapsed: isCollapsed })}>
+                {moduleItems.map((moduleItem) => (
+                  <button
+                    key={moduleItem.slug}
+                    className={sidebarSubnavItemStyles({ active: moduleItem.slug === selectedModule })}
+                    type="button"
+                    onClick={() => {
+                      setSelectedModule(moduleItem.slug);
+                      onNavigateModule?.(moduleItem.slug);
+                    }}
+                  >
+                    {moduleItem.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {secondaryItems.map(renderNavItem)}
           </nav>
         </div>
@@ -125,3 +178,6 @@ export function Sidebar({
     </>
   );
 }
+
+
+

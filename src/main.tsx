@@ -9,6 +9,7 @@ import "./styles/tokens.css";
 import "./styles/global.css";
 import "./styles/dashboard.css";
 import "./styles/pages/attendance.css";
+import "./styles/pages/modules.css";
 import "./styles/pages/overview.css";
 
 initializeClarity(import.meta.env.VITE_CLARITY_PROJECT_ID);

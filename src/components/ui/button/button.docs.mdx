@@ -1,0 +1,192 @@
+import { Meta, Title, Subtitle, Description, Canvas, Controls, Source } from "@storybook/blocks";
+import * as ButtonStories from "./button.stories";
+
+<Meta of={ButtonStories} />
+
+<Title />
+<Subtitle>Acao principal e acoes de apoio em fluxos da plataforma</Subtitle>
+<Description>
+O `Button` e o componente base para disparar a acao principal de uma tarefa (ex.: salvar cadastro, confirmar presenca, aplicar filtro) ou acoes secundarias de navegacao.
+</Description>
+
+## Visao geral
+
+O componente organiza hierarquia de acoes no sistema e garante consistencia visual entre modulos administrativos e operacionais.
+
+Ele aparece com frequencia em:
+
+- Cadastro e edicao de aluno
+- Registro de presenca
+- Filtros e busca
+- Modais de confirmacao
+
+---
+
+## Quando usar
+
+- Confirmar uma acao principal do fluxo (ex.: `Salvar cadastro`)
+- Disparar acoes secundarias com menor destaque (ex.: `Voltar`, `Filtrar`)
+- Acoes criticas com risco (usar variacao `danger`)
+- Acoes iconicas com descricao acessivel (usar `IconButton`)
+
+---
+
+## Quando NAO usar
+
+- Para navegacao entre paginas quando o padrao correto for link
+- Para selecao de opcoes (prefira `Select` ou `Checkbox`)
+- Para alternancia de estado persistente (prefira `Switch` ou `Tabs`)
+- Para acoes sem contexto claro de resultado
+
+---
+
+## Anatomia
+
+- Container clicavel (`button`)
+- Label textual (obrigatorio em botoes nao iconicos)
+- Icone opcional de apoio
+- Estado visual (`default`, `hover`, `focus`, `disabled`)
+- Variacao semantica (`primary`, `secondary`, `ghost`, `danger`, `icon`)
+
+---
+
+## Variacoes
+
+- `primary`: acao principal
+- `secondary`: acao de apoio
+- `ghost`: acao discreta
+- `danger`: acao destrutiva
+- `icon`: acao compacta com icone
+
+Tamanhos suportados:
+
+- `sm`
+- `md`
+- `icon`
+
+---
+
+## Estados
+
+- Default
+- Hover
+- Focus (com `focus-visible`)
+- Disabled
+
+---
+
+## Exemplos de uso
+
+### Exemplo basico
+
+<Canvas of={ButtonStories.Playground} />
+
+### Exemplo em contexto
+
+Formulario de cadastro de aluno com acao primaria e secundaria.
+<Canvas of={ButtonStories.InEnrollmentFlow} />
+
+### Tabs de documentacao
+
+#### Playground
+
+Ajuste as props para validar variacoes e tamanhos:
+
+<Controls of={ButtonStories.Playground} />
+
+#### Guidelines
+
+- Priorize apenas um botao primario por area de decisao
+- Use texto com verbo de acao (`Salvar`, `Confirmar`, `Excluir`)
+- Em acoes irreversiveis, use `danger` com mensagem de contexto
+- Desabilite somente quando houver condicao objetiva para bloqueio
+
+#### Code
+
+<Source of={ButtonStories.Playground} />
+
+---
+
+## Boas praticas
+
+- Manter label claro e orientado a resultado
+- Preservar contraste entre fundo e texto nas variacoes
+- Exibir icone como reforco, nunca como unica forma de significado (exceto `IconButton` com `label`)
+- Garantir consistencia de hierarquia entre acoes primarias e secundarias
+
+---
+
+## Anti-patterns (erros comuns)
+
+- Criar dois botoes primarios concorrendo no mesmo bloco
+- Usar icone sozinho sem `aria-label`
+- Texto generico sem contexto (`OK`, `Enviar` sem complemento)
+- Usar botao para representar selecao persistente
+
+---
+
+## Acessibilidade
+
+- `IconButton` exige `label` para gerar `aria-label`
+- Foco visivel com `focus-visible`
+- Estado desabilitado impede interacao e comunica indisponibilidade
+- Labels devem descrever a acao esperada
+
+---
+
+## Conteudo (UX Writing)
+
+- Use verbos objetivos: `Salvar`, `Aplicar filtro`, `Confirmar exclusao`
+- Evite termos tecnicos internos
+- Prefira texto curto (1 a 3 palavras) quando possivel
+- Em acoes criticas, seja explicito no impacto
+
+---
+
+## Comportamento
+
+- Aciona `onClick` quando habilitado
+- Mantem semantica nativa de `button` (`type` padrao = `button`)
+- Adapta layout automaticamente quando `variant="icon"` ou `size="icon"`
+- Nao renderiza label textual no modo iconico
+
+---
+
+## Integracao com o sistema
+
+- Fluxo de cadastro de aluno (salvar e avancar)
+- Registro de presenca (confirmar acao)
+- Listagens administrativas (filtrar, limpar, editar)
+- Modais de confirmacao (cancelar/confirmar)
+
+---
+
+## API (Props)
+
+| Nome | Tipo | Descricao |
+| --- | --- | --- |
+| `children` | `ReactNode` | Conteudo textual do botao |
+| `icon` | `ReactNode` | Icone exibido antes do label |
+| `variant` | `"primary" \| "secondary" \| "ghost" \| "danger" \| "icon"` | Hierarquia e semantica visual |
+| `size` | `"sm" \| "md" \| "icon"` | Define altura e espacamento |
+| `disabled` | `boolean` | Bloqueia interacao |
+| `type` | `"button" \| "submit" \| "reset"` | Tipo nativo do HTML button |
+| `onClick` | `(event) => void` | Callback de interacao |
+
+Props do `IconButton`:
+
+| Nome | Tipo | Descricao |
+| --- | --- | --- |
+| `icon` | `ReactNode` | Icone obrigatorio |
+| `label` | `string` | Texto acessivel para `aria-label` |
+
+---
+
+## Codigo
+
+```tsx
+import { Plus } from "lucide-react";
+import { Button } from "@/src/components/ui/button";
+
+<Button icon={<Plus aria-hidden="true" />}>Adicionar aluno</Button>
+```
