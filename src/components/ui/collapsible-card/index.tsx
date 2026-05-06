@@ -1,17 +1,12 @@
 import { ChevronDown } from "lucide-react";
-import { useState, type HTMLAttributes, type ReactNode } from "react";
+import { useState } from "react";
 
 import { Card } from "@/src/components/ui/card";
 import { cn } from "@/src/lib/utils";
+import { collapsibleCardChevronStyles, collapsibleCardContentStyles, collapsibleCardStyles } from "./collapsible-card.styles";
+import type { CollapsibleCardProps } from "./collapsible-card.types";
 
-type CollapsibleCardProps = HTMLAttributes<HTMLElement> & {
-  title: string;
-  icon?: ReactNode;
-  badge?: ReactNode;
-  description?: ReactNode;
-  children: ReactNode;
-  defaultOpen?: boolean;
-};
+export type { CollapsibleCardProps } from "./collapsible-card.types";
 
 export function CollapsibleCard({
   title,
@@ -26,7 +21,7 @@ export function CollapsibleCard({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <Card className={cn("collapsible-card", className)} {...props}>
+    <Card className={cn(collapsibleCardStyles(), className)} {...props}>
       <button
         type="button"
         className="collapsible-card__trigger"
@@ -41,9 +36,9 @@ export function CollapsibleCard({
           </span>
           {badge ? <span className="collapsible-card__badge">{badge}</span> : null}
         </span>
-        <ChevronDown className={cn("collapsible-card__chevron", isOpen && "is-open")} aria-hidden="true" />
+        <ChevronDown className={collapsibleCardChevronStyles({ open: isOpen })} aria-hidden="true" />
       </button>
-      <div className={cn("collapsible-card__content", !isOpen && "is-collapsed")}>
+      <div className={collapsibleCardContentStyles({ collapsed: !isOpen })}>
         <div className="collapsible-card__content-inner">{children}</div>
       </div>
     </Card>

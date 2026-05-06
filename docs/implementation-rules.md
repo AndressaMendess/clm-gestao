@@ -5,7 +5,6 @@ Este documento define as regras operacionais para implementacao de telas e funci
 Ele complementa [guidelines.md](/C:/Users/andre/OneDrive/Documentos/clm-gestao/docs/guidelines.md), que continua sendo a referencia principal para cores, tipografia e tokens.
 
 ## Objetivo
-
 Garantir que toda nova implementacao:
 
 - siga o design enviado via Figma
@@ -118,17 +117,14 @@ Como a plataforma pode ser usada por usuarios com baixa familiaridade tecnologic
 - usar feedback visual para sucesso, erro e estado atual
 
 ### 8. Animacao com moderacao
-
 Animacoes podem ser usadas, mas devem ser leves e funcionais.
 
 Padrao:
-
 - transicoes curtas
 - feedback de abertura e fechamento
 - nada que atrapalhe velocidade de uso
 
 Evitar:
-
 - efeitos pesados
 - animacoes longas
 - movimento decorativo sem funcao

@@ -8,7 +8,8 @@ import { TopBar } from "./components/TopBar";
 import { AttendancePage } from "./pages/AttendancePage";
 import { ModuleClassesPage } from "./pages/ModuleClassesPage";
 import { OverviewPage } from "./pages/OverviewPage";
-import { StudentsPageDrawer } from "./pages/StudentsPageDrawer";
+import { SettingsPage } from "./pages/SettingsPage";
+import { StudentsPage } from "./pages/StudentsPage";
 import { TeachersPage } from "./pages/TeachersPage";
 
 function getActivePage(pathname: string): SidebarPage {
@@ -26,6 +27,10 @@ function getActivePage(pathname: string): SidebarPage {
 
   if (pathname.startsWith("/modulos/")) {
     return "modules";
+  }
+
+  if (pathname.startsWith("/configuracoes")) {
+    return "settings";
   }
 
   return "overview";
@@ -135,7 +140,8 @@ export default function App() {
             students: "/alunos",
             teachers: "/professores",
             attendance: "/presencas",
-            modules: "/modulos/modulo-i"
+            modules: "/modulos/modulo-i",
+            settings: "/configuracoes"
           };
 
           navigate(routeByPage[page]);
@@ -162,8 +168,9 @@ export default function App() {
                 />
               }
             />
-            <Route path="/alunos" element={<StudentsPageDrawer />} />
+            <Route path="/alunos" element={<StudentsPage attendanceEntries={attendanceEntries} />} />
             <Route path="/professores" element={<TeachersPage />} />
+            <Route path="/configuracoes" element={<SettingsPage />} />
             <Route path="/modulos/:moduleSlug" element={<ModuleClassesRoute onOpenClass={openAttendanceCall} />} />
             <Route
               path="/presencas"
@@ -210,3 +217,5 @@ export default function App() {
     </div>
   );
 }
+
+

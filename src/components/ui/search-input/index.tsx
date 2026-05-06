@@ -1,20 +1,20 @@
-import type { ChangeEventHandler } from "react";
 import { Search } from "lucide-react";
+import { cn } from "@/src/lib/utils";
+import {
+  searchInputFieldStyles,
+  searchInputIconStyles,
+  searchInputWrapperStyles
+} from "./search-input.styles";
+import type { SearchInputProps } from "./search-input.types";
+export type { SearchInputProps } from "./search-input.types";
 
-type SearchInputProps = {
-  value: string;
-  onChange: ChangeEventHandler<HTMLInputElement>;
-  placeholder: string;
-  ariaLabel: string;
-};
-
-export function SearchInput({ value, onChange, placeholder, ariaLabel }: SearchInputProps) {
+export function SearchInput({ value, onChange, placeholder, ariaLabel, className }: SearchInputProps) {
   return (
-    <label className="search-field">
-      <Search aria-hidden="true" />
+    <label className={cn(searchInputWrapperStyles, className)}>
+      <Search className={searchInputIconStyles} aria-hidden="true" />
       <input
         type="text"
-        className="search-field__input"
+        className={searchInputFieldStyles}
         placeholder={placeholder}
         aria-label={ariaLabel}
         value={value}

@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { ModuleSlug } from "@/src/data/modules";
 
-export type SidebarPage = "overview" | "students" | "teachers" | "attendance" | "modules";
+export type SidebarPage = "overview" | "students" | "teachers" | "attendance" | "modules" | "settings";
 
 export type SidebarProps = {
   activePage: SidebarPage;

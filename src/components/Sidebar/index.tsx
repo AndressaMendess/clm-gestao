@@ -49,7 +49,7 @@ const primaryItems: SidebarNavItem[] = [
 
 const secondaryItems: SidebarNavItem[] = [
   { page: "teachers", label: "Professores", icon: UserRound },
-  { label: "Configurações", icon: Settings }
+  { page: "settings", label: "Configurações", icon: Settings }
 ];
 
 const moduleItems = getAllModuleConfigs();

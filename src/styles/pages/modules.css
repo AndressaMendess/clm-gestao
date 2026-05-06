@@ -97,7 +97,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-16);
-  background: var(--color-brand-primary-soft);
+  background: var(--color-brand-primary-subtle);
   color: var(--color-brand-primary-main);
 }
 

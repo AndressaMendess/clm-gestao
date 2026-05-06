@@ -1,6 +1,7 @@
-﻿import { CalendarDays, FileText } from "lucide-react";
+import { CalendarDays, FileText } from "lucide-react";
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { SecondaryButton } from "@/src/components/ui/secondary-button";
 import { CollapsibleCard } from "@/src/components/ui/collapsible-card";
 
 const meta = {
@@ -11,7 +12,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Card colapsÃ¡vel com cabeÃ§alho clicÃ¡vel e seta para expandir/recolher conteÃºdo, usado em seÃ§Ãµes do drawer.",
+          "Card colaps�vel com cabe�alho clic�vel e seta para expandir/recolher conte�do, usado em se��es do drawer.",
       },
     },
   },
@@ -23,19 +24,19 @@ type Story = StoryObj<typeof meta>;
 export const DocumentsSection: Story = {
   args: {
     title: "Documentos Pessoais",
-    children: "ConteÃºdo"
+    children: "Conte�do"
   },
   render: () => (
     <div style={{ maxWidth: 520 }}>
       <CollapsibleCard title="Documentos Pessoais" icon={<FileText />} badge={1}>
-        <div className="attachment-section__body">
-          <button className="attachment-action-button" type="button">
-            <span>Adicionar documento</span>
-          </button>
-          <div className="attachment-file">
-            <div className="attachment-file__text">
-              <strong>RG_Ana_Carolina_Souza.pdf</strong>
-              <span>1.0 KB â€¢ 18/01/2024</span>
+        <div className="flex flex-col gap-3 p-0">
+          <SecondaryButton className="min-h-[42px] rounded-[10px] border border-[#d0d5dd] bg-[var(--color-surface-card)] text-sm font-medium text-[#344054] shadow-none">
+            Adicionar documento
+          </SecondaryButton>
+          <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--color-surface-border)] bg-[#f9fafb] p-4">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <strong className="text-sm font-semibold tracking-[-0.28px] text-[var(--color-neutral-850)]">RG_Ana_Carolina_Souza.pdf</strong>
+              <span className="text-xs tracking-[-0.24px] text-[#667085]">1.0 KB � 18/01/2024</span>
             </div>
           </div>
         </div>
@@ -47,16 +48,15 @@ export const DocumentsSection: Story = {
 export const ClosedByDefault: Story = {
   args: {
     title: "Justificativas de Faltas",
-    children: "ConteÃºdo"
+    children: "Conte�do"
   },
   render: () => (
     <div style={{ maxWidth: 520 }}>
       <CollapsibleCard title="Justificativas de Faltas" icon={<CalendarDays />} defaultOpen={false}>
-        <div className="attachment-section__body">
+        <div className="flex flex-col gap-3 p-0">
           <p className="student-card__placeholder-text">Sem justificativas no momento.</p>
         </div>
       </CollapsibleCard>
     </div>
   ),
 };
-

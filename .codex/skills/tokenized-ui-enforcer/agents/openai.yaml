@@ -1,0 +1,6 @@
+version: 1
+interface:
+  display_name: "Tokenized UI Enforcer"
+  short_description: "Substitui estilos hardcoded por tokens e força reuso de componentes existentes."
+  default_prompt: "Revise estilos hardcoded e troque por tokens de cor/tipografia existentes, priorizando componentes já criados em src/components/ui antes de criar novos."
+

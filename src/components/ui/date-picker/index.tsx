@@ -1,13 +1,11 @@
-import type { ChangeEventHandler, InputHTMLAttributes } from "react";
-
 import { cn } from "@/src/lib/utils";
-
-type DatePickerProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "onChange" | "value"> & {
-  value: string;
-  onChange: ChangeEventHandler<HTMLInputElement>;
-  label?: string;
-  wrapperClassName?: string;
-};
+import {
+  datePickerFieldInputStyles,
+  datePickerFieldLabelStyles,
+  datePickerFieldWrapperStyles
+} from "./date-picker.styles";
+import type { DatePickerProps } from "./date-picker.types";
+export type { DatePickerProps } from "./date-picker.types";
 
 export function DatePicker({ value, onChange, label, className, wrapperClassName, onKeyDown, ...props }: DatePickerProps) {
   const openNativePicker = (event: { currentTarget: HTMLInputElement }) => {
@@ -28,7 +26,7 @@ export function DatePicker({ value, onChange, label, className, wrapperClassName
       type="date"
       value={value}
       onChange={onChange}
-      className={cn("input-field date-picker-field__input", className)}
+      className={cn(datePickerFieldInputStyles, className)}
       onFocus={openNativePicker}
       onClick={openNativePicker}
       onKeyDown={(event) => {
@@ -45,8 +43,8 @@ export function DatePicker({ value, onChange, label, className, wrapperClassName
   }
 
   return (
-    <label className={cn("date-picker-field", wrapperClassName)}>
-      <span>{label}</span>
+    <label className={cn(datePickerFieldWrapperStyles, wrapperClassName)}>
+      <span className={datePickerFieldLabelStyles}>{label}</span>
       {content}
     </label>
   );

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { ArrowLeft, CalendarDays, ChevronDown } from "lucide-react";
 
 type AttendanceHistoryStatus = "Presente" | "Ausente";
@@ -155,3 +155,4 @@ export function StudentAttendanceHistoryPage({
     </main>
   );
 }
+

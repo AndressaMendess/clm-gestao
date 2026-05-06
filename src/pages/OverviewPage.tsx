@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, Users } from "lucide-react";
 
-import { attendanceClassOptions, attendanceHistory } from "../data/attendance";
+import { attendanceHistory } from "../data/attendance";
 import { students } from "../data/students";
 import { DashboardActionCard } from "../components/dashboard/DashboardActionCard";
 import { DashboardPanel } from "../components/dashboard/DashboardPanel";
+import { Button } from "../components/ui/button";
 
 type OverviewPageProps = {
   onOpenAttendanceStart: () => void;
@@ -84,45 +86,62 @@ export function OverviewPage({
     }
   ];
 
-  const recentEntries = [...attendanceHistory]
-    .sort((first, second) => parseEntryDate(second.date, second.time).getTime() - parseEntryDate(first.date, first.time).getTime())
-    .slice(0, 2);
-
-  const presentStudentsCount = attendanceHistory.reduce(
-    (count, entry) => count + entry.students.filter((student) => student.status === "Presente").length,
-    0
+  const recentEntries = useMemo(
+    () =>
+      [...attendanceHistory]
+        .sort((first, second) => parseEntryDate(second.date, second.time).getTime() - parseEntryDate(first.date, first.time).getTime())
+        .slice(0, 2),
+    []
   );
 
-  const stats = [
-    {
-      label: "Alunos Presentes",
-      value: presentStudentsCount,
-      tone: "orange"
-    },
-    {
-      label: "Turmas Ativas",
-      value: new Set(students.map((student) => student.className)).size,
-      tone: "blue"
-    },
-    {
-      label: "Alunos Ativos",
-      value: students.length,
-      tone: "purple"
-    }
-  ] as const;
+  const presentStudentsCount = useMemo(
+    () =>
+      attendanceHistory.reduce(
+        (count, entry) => count + entry.students.filter((student) => student.status === "Presente").length,
+        0
+      ),
+    []
+  );
+
+  const stats = useMemo(
+    () =>
+      [
+        {
+          label: "Alunos Presentes",
+          value: presentStudentsCount,
+          tone: "orange"
+        },
+        {
+          label: "Turmas Ativas",
+          value: new Set(students.map((student) => student.className)).size,
+          tone: "blue"
+        },
+        {
+          label: "Alunos Ativos",
+          value: students.length,
+          tone: "purple"
+        }
+      ] as const,
+    [presentStudentsCount]
+  );
 
   return (
-    <main className="overview-page">
-      <section className="overview-page__header">
-        <div className="overview-page__greeting">
-          <h1>
-            {`Ol\u00E1, Andressa - `}
-            <span>{formatTodayLabel()}</span>
+    <main className="flex flex-1 flex-col gap-6 px-4 pb-8 max-[960px]:gap-5 max-[960px]:pt-5 max-[960px]:pb-7 max-[640px]:px-3">
+      <section className="pt-4">
+        <div>
+          <h1 className="m-0 text-[var(--text-heading-h6-size)] font-semibold leading-[var(--text-heading-6-line-height)] tracking-[var(--text-heading-6-letter-spacing)] text-[var(--color-content-primary)] max-[640px]:flex max-[640px]:flex-col max-[640px]:gap-0.5">
+            {"Ol\u00E1 - "}
+            <span className="text-[var(--text-body-x-large-size)] font-medium leading-[var(--text-body-line-height)] tracking-[var(--text-body-letter-spacing)] text-[var(--color-content-tertiary)]">
+              {formatTodayLabel()}
+            </span>
           </h1>
         </div>
       </section>
 
-      <section className="overview-actions" aria-label="A\u00E7\u00F5es r\u00E1pidas">
+      <section
+        className="grid grid-cols-3 gap-4 max-[960px]:grid-cols-1"
+        aria-label={"A\u00E7\u00F5es r\u00E1pidas"}
+      >
         {overviewActions.map((action) => {
           return (
             <DashboardActionCard
@@ -137,56 +156,90 @@ export function OverviewPage({
         })}
       </section>
 
-      <section className="overview-grid" aria-label="Resumo da opera\u00E7\u00E3o">
+      <section className="grid grid-cols-[minmax(0,2.1fr)_minmax(280px,1fr)] gap-4 max-[960px]:grid-cols-1" aria-label={"Resumo da opera\u00E7\u00E3o"}>
         <DashboardPanel
           title="Atividade Recente"
-          className="dashboard-panel--activity"
           action={
-            <button className="overview-panel__link" type="button" onClick={onOpenAttendanceHistory}>
+            <Button
+              className="min-h-0 rounded-xl px-2 py-1 text-[length:var(--text-body-x-large-size)] !text-[var(--color-brand-primary-main)]"
+              size="sm"
+              variant="ghost"
+              onClick={onOpenAttendanceHistory}
+            >
               Ver tudo
-            </button>
+            </Button>
           }
         >
-          <div className="overview-activity-list">
-            {recentEntries.map((entry) => {
-              const entryDate = parseEntryDate(entry.date, entry.time);
+          <div className="flex flex-col gap-2 px-2 pb-2">
+            {recentEntries.length > 0 ? (
+              recentEntries.map((entry) => {
+                const entryDate = parseEntryDate(entry.date, entry.time);
 
-              return (
-                <article key={entry.id} className="overview-activity-item">
-                  <div className="overview-activity-item__icon" aria-hidden="true">
-                    <CheckCircle2 />
-                  </div>
+                return (
+                  <article
+                    key={entry.id}
+                    className="grid grid-cols-[40px_minmax(0,1fr)] gap-4 px-6 py-4 max-[640px]:grid-cols-1 max-[640px]:px-4"
+                  >
+                    <div
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-accent-blue-background)] text-[var(--color-accent-blue-content)] [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0"
+                      aria-hidden="true"
+                    >
+                      <CheckCircle2 />
+                    </div>
 
-                  <div className="overview-activity-item__content">
-                    <div className="overview-activity-item__row">
-                      <div>
-                        <strong>{`Chamada registrada - ${entry.title}`}</strong>
-                        <p>{`${entry.students.length} aluno${entry.students.length > 1 ? "s" : ""}`}</p>
+                    <div className="flex min-w-0 flex-col gap-2">
+                      <div className="flex items-start justify-between gap-4 max-[640px]:flex-col max-[640px]:gap-1">
+                        <div>
+                          <strong className="block text-[var(--text-body-medium-size)] font-medium leading-[var(--text-body-line-height)] tracking-[var(--text-body-letter-spacing)] text-[var(--color-content-primary)]">
+                            {`Chamada registrada - ${entry.title}`}
+                          </strong>
+                          <p className="m-0 text-[var(--text-body-medium-size)] leading-[var(--text-body-line-height)] tracking-[var(--text-body-letter-spacing)] text-[var(--color-content-tertiary)]">
+                            {`${entry.students.length} aluno${entry.students.length > 1 ? "s" : ""}`}
+                          </p>
+                        </div>
+                        <span className="whitespace-nowrap text-[var(--text-body-medium-size)] leading-[var(--text-body-line-height)] tracking-[var(--text-body-letter-spacing)] text-[var(--color-content-tertiary)]">
+                          {formatDaysAgoLabel(entryDate)}
+                        </span>
                       </div>
-                      <span className="overview-activity-item__age">{formatDaysAgoLabel(entryDate)}</span>
-                    </div>
 
-                    <div className="overview-activity-item__meta">
-                      <CalendarDays aria-hidden="true" />
-                      <span>{`${entry.date} \u00E0s ${entry.time}`}</span>
+                      <div className="inline-flex items-center gap-1.5 text-[var(--text-body-small-size)] leading-[var(--text-body-line-height)] tracking-[var(--text-body-letter-spacing)] text-[var(--color-content-tertiary)] [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0">
+                        <CalendarDays aria-hidden="true" />
+                        <span>{`${entry.date} \u00E0s ${entry.time}`}</span>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              );
-            })}
+                  </article>
+                );
+              })
+            ) : (
+              <p className="m-0 px-6 py-4 text-[var(--text-body-medium-size)] leading-[var(--text-body-line-height)] tracking-[var(--text-body-letter-spacing)] text-[var(--color-content-tertiary)]">
+                Nenhuma atividade recente registrada.
+              </p>
+            )}
           </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Estat\u00EDsticas R\u00E1pidas" className="dashboard-panel--stats" compactHeader>
-          <div className="overview-stats-list">
+        <DashboardPanel title={"Estat\u00EDsticas R\u00E1pidas"} className="flex min-h-0 flex-col px-6 pb-6" compactHeader>
+          <div className="flex flex-1 flex-col justify-center gap-4">
             {stats.map((stat) => (
-              <div key={stat.label} className="overview-stat">
-                <div className="overview-stat__row">
-                  <span>{stat.label}</span>
-                  <strong>{stat.value}</strong>
+              <div key={stat.label} className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[var(--text-body-medium-size)] leading-[var(--text-body-line-height)] tracking-[var(--text-body-letter-spacing)] text-[var(--color-content-tertiary)]">
+                    {stat.label}
+                  </span>
+                  <strong className="text-[var(--text-body-x-large-size)] font-bold leading-[var(--text-body-line-height)] tracking-[var(--text-body-letter-spacing)] text-[var(--color-content-primary)]">
+                    {stat.value}
+                  </strong>
                 </div>
-                <div className="overview-stat__track" aria-hidden="true">
-                  <span className={`overview-stat__fill overview-stat__fill--${stat.tone}`} />
+                <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--color-background-secondary)]" aria-hidden="true">
+                  <span
+                    className={
+                      stat.tone === "orange"
+                        ? "block h-full w-full rounded-[inherit] bg-[linear-gradient(90deg,var(--color-brand-primary-main),var(--color-brand-primary-gradient-end))]"
+                        : stat.tone === "blue"
+                          ? "block h-full w-full rounded-[inherit] bg-[linear-gradient(90deg,var(--color-brand-secondary-main),var(--primitive-iblue-500))]"
+                          : "block h-full w-full rounded-[inherit] bg-[var(--primitive-purple-500)]"
+                    }
+                  />
                 </div>
               </div>
             ))}

@@ -1,25 +1,18 @@
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
 
 import { cn } from "@/src/lib/utils";
+import {
+  modalContainerBodyStyles,
+  modalContainerCloseStyles,
+  modalContainerCopyStyles,
+  modalContainerFooterStyles,
+  modalContainerHeaderStyles,
+  modalContainerOverlayStyles,
+  modalContainerStyles
+} from "./modal-container.styles";
+import type { ModalContainerProps } from "./modal-container.types";
 
-type ModalContainerProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  subtitle?: string;
-  titleId: string;
-  children: ReactNode;
-  footer?: ReactNode;
-  overlayClassName?: string;
-  className?: string;
-  headerClassName?: string;
-  copyClassName?: string;
-  bodyClassName?: string;
-  footerClassName?: string;
-  closeButtonClassName?: string;
-  closeLabel?: string;
-};
+export type { ModalContainerProps } from "./modal-container.types";
 
 export function ModalContainer({
   isOpen,
@@ -43,28 +36,28 @@ export function ModalContainer({
   }
 
   return (
-    <div className={cn("modal-container-overlay", overlayClassName)} role="presentation" onClick={onClose}>
+    <div className={cn(modalContainerOverlayStyles(), overlayClassName)} role="presentation" onClick={onClose}>
       <div
-        className={cn("modal-container", className)}
+        className={cn(modalContainerStyles(), className)}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
       >
-        <header className={cn("modal-container__header", headerClassName)}>
-          <div className={cn("modal-container__copy", copyClassName)}>
+        <header className={cn(modalContainerHeaderStyles(), headerClassName)}>
+          <div className={cn(modalContainerCopyStyles(), copyClassName)}>
             <h2 id={titleId}>{title}</h2>
             {subtitle ? <p>{subtitle}</p> : null}
           </div>
 
-          <button className={cn("modal-container__close", closeButtonClassName)} type="button" aria-label={closeLabel} onClick={onClose}>
+          <button className={cn(modalContainerCloseStyles(), closeButtonClassName)} type="button" aria-label={closeLabel} onClick={onClose}>
             <X aria-hidden="true" />
           </button>
         </header>
 
-        <div className={cn("modal-container__body", bodyClassName)}>{children}</div>
+        <div className={cn(modalContainerBodyStyles(), bodyClassName)}>{children}</div>
 
-        {footer ? <footer className={cn("modal-container__footer", footerClassName)}>{footer}</footer> : null}
+        {footer ? <footer className={cn(modalContainerFooterStyles(), footerClassName)}>{footer}</footer> : null}
       </div>
     </div>
   );

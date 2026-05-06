@@ -90,7 +90,7 @@ export function getModuleCards(moduleSlug: ModuleSlug): ModuleClassCard[] {
     return {
       classId: matchedClass?.id ?? Number(`${moduleSlug.replace("modulo-", "")}${index + 1}`),
       className,
-      teacherName: matchedClass?.teacherName ?? "Prof. Maria Silva",
+      teacherName: matchedClass?.teacherName ?? "Professor(a) a definir",
       studentCount: matchedClass?.studentCount ?? 0,
       scheduleLabel: schedules[index % schedules.length],
       icon: getClassIcon(className)

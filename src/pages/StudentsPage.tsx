@@ -1,168 +1,4070 @@
-import { ArrowDown, ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { students } from "../data/students";
-import { StatusBadge } from "../components/ui/status-badge";
-import { TableCard } from "../components/ui/table-card";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertCircle,
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardCheck,
+  Copy,
+  Download,
+  ExternalLink,
+  Eye,
+  FileImage,
+  FileText,
+  Home,
+  LoaderCircle,
+  PenLine,
+  Plus,
+  Trash2,
+  Upload,
+  X
+} from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
 
-type FilterButtonProps = {
-  label: string;
+import { Badge } from "@/src/components/ui/badge";
+import { AttachmentIcon } from "@/src/components/ui/attachment-icon";
+import { Button, IconButton } from "@/src/components/ui/button";
+import { Card } from "@/src/components/ui/card";
+import { Checkbox } from "@/src/components/ui/checkbox";
+import { CollapsibleCard } from "@/src/components/ui/collapsible-card";
+import { ConfidenceBadge, type ExtractionConfidence } from "@/src/components/ui/confidence-badge";
+import { DatePicker } from "@/src/components/ui/date-picker";
+import { DocumentUploadField } from "@/src/components/ui/document-upload-field";
+import { FrequencyStatusBadge } from "@/src/components/ui/frequency-status-badge";
+import { Input } from "@/src/components/ui/input";
+import { JustificationStatusBadge } from "@/src/components/ui/justification-status-badge";
+import { ModalContainer } from "@/src/components/ui/modal-container";
+import { Pill, type PillTone } from "@/src/components/ui/pill";
+import { SearchInput } from "@/src/components/ui/search-input";
+import { SecondaryButton } from "@/src/components/ui/secondary-button";
+import { SelectField } from "@/src/components/ui/select-field";
+import { Stepper } from "@/src/components/ui/stepper";
+import { StatusBadge } from "@/src/components/ui/status-badge";
+import { DataTable, type DataTableColumn } from "@/src/components/ui/data-table";
+import { TextareaField } from "@/src/components/ui/textarea-field";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
+import { attendanceHistory, type AttendanceHistoryEntry, type AttendanceStatus } from "../data/attendance";
+import { getClassOptions, statusOptions, type ClassFilter, type ModuleFilter, type StatusFilter } from "../data/filters";
+import { students } from "../data/students";
+import { StudentAttendanceHistoryView, type StudentAttendanceHistoryRecordView } from "./StudentAttendanceHistoryView";
+
+type StudentSortKey = "recent" | "name" | "status" | "contact" | "module" | "className";
+
+type StudentStatus = "Ativo" | "Inativo" | "Trancamento";
+type DrawerTab = "personal" | "contact" | "address" | "attachments" | "frequency";
+type FrequencyRecord = StudentAttendanceHistoryRecordView;
+type JustificationType = "Atestado médico" | "Declaração" | "Outro";
+type JustificationStatus = "Pendente" | "Aprovada" | "Rejeitada";
+
+type JustificationRecord = {
+  id: string;
+  classDate: string;
+  type: JustificationType;
+  status: JustificationStatus;
+  note: string;
+  fileName?: string;
+  fileSizeLabel?: string;
+  createdAtLabel: string;
 };
 
-function FilterButton({ label }: FilterButtonProps) {
+type PersonalAttachmentRecord = {
+  id: string;
+  file: File;
+  createdAtLabel: string;
+};
+
+type ScannedUploadFiles = {
+  enrollmentForm: File | null;
+  identityDocument: File | null;
+  residenceProof: File | null;
+  photo: File | null;
+};
+
+type ScannedReviewDocumentId = keyof ScannedUploadFiles;
+type ScannedEnrollmentForm = {
+  module: string;
+  className: string;
+};
+
+const emptyScannedUploadFiles: ScannedUploadFiles = {
+  enrollmentForm: null,
+  identityDocument: null,
+  residenceProof: null,
+  photo: null
+};
+
+const emptyScannedEnrollmentForm: ScannedEnrollmentForm = {
+  module: "",
+  className: ""
+};
+
+type StudentRecord = (typeof students)[number] & {
+  attendance: FrequencyRecord[];
+  details: {
+    rg: string;
+    birthDate: string;
+    sex: string;
+    maritalStatus: string;
+    nationality: string;
+    fatherName: string;
+    motherName: string;
+    attachmentsCount: number;
+    contact: {
+      phone: string;
+      email: string;
+      schoolEmail: string;
+    };
+    address: {
+      zipCode: string;
+      number: string;
+      street: string;
+      complement: string;
+      neighborhood: string;
+      city: string;
+      state: string;
+    };
+  };
+};
+
+const studentDetailsById: Record<number, StudentRecord["details"]> = {
+  1: {
+    rg: "12.345.678-9",
+    birthDate: "14/03/2005",
+    sex: "-",
+    maritalStatus: "-",
+    nationality: "-",
+    fatherName: "-",
+    motherName: "-",
+    attachmentsCount: 1,
+    contact: {
+      phone: "(11) 98765-4321",
+      email: "ana.souza@email.com",
+      schoolEmail: "ana.souza@escolaclm.com"
+    },
+    address: {
+      zipCode: "01310-100",
+      number: "1578",
+      street: "Avenida Paulista",
+      complement: "Apto 42",
+      neighborhood: "Bela Vista",
+      city: "São Paulo",
+      state: "SP"
+    }
+  },
+  2: {
+    rg: "23.456.789-0",
+    birthDate: "02/07/2006",
+    sex: "Masculino",
+    maritalStatus: "Solteiro",
+    nationality: "Brasileira",
+    fatherName: "Marcos Baker",
+    motherName: "Elaine Baker",
+    attachmentsCount: 2,
+    contact: {
+      phone: "(11) 99876-4321",
+      email: "phoenix@untitledui.com",
+      schoolEmail: "phoenix@escolaclm.com"
+    },
+    address: {
+      zipCode: "04538-132",
+      number: "250",
+      street: "Rua Gomes de Carvalho",
+      complement: "Sala 14",
+      neighborhood: "Vila Olímpia",
+      city: "São Paulo",
+      state: "SP"
+    }
+  },
+  3: {
+    rg: "34.567.890-1",
+    birthDate: "21/11/2004",
+    sex: "Feminino",
+    maritalStatus: "Solteira",
+    nationality: "Brasileira",
+    fatherName: "-",
+    motherName: "Helena Steiner",
+    attachmentsCount: 0,
+    contact: {
+      phone: "(11) 94567-1221",
+      email: "lana@untitledui.com",
+      schoolEmail: "lana@escolaclm.com"
+    },
+    address: {
+      zipCode: "05407-000",
+      number: "98",
+      street: "Rua dos Pinheiros",
+      complement: "Casa",
+      neighborhood: "Pinheiros",
+      city: "São Paulo",
+      state: "SP"
+    }
+  },
+  4: {
+    rg: "45.678.901-2",
+    birthDate: "08/01/2007",
+    sex: "-",
+    maritalStatus: "-",
+    nationality: "Brasileira",
+    fatherName: "Carlos Wilkinson",
+    motherName: "-",
+    attachmentsCount: 3,
+    contact: {
+      phone: "(11) 93456-8800",
+      email: "demi@untitledui.com",
+      schoolEmail: "demi@escolaclm.com"
+    },
+    address: {
+      zipCode: "04038-002",
+      number: "412",
+      street: "Rua Domingos de Morais",
+      complement: "Bloco B",
+      neighborhood: "Vila Mariana",
+      city: "São Paulo",
+      state: "SP"
+    }
+  },
+  5: {
+    rg: "56.789.012-3",
+    birthDate: "18/09/2003",
+    sex: "Feminino",
+    maritalStatus: "Solteira",
+    nationality: "Brasileira",
+    fatherName: "-",
+    motherName: "-",
+    attachmentsCount: 1,
+    contact: {
+      phone: "(11) 92345-9012",
+      email: "candice@untitledui.com",
+      schoolEmail: "candice@escolaclm.com"
+    },
+    address: {
+      zipCode: "01414-001",
+      number: "81",
+      street: "Rua Augusta",
+      complement: "Fundos",
+      neighborhood: "Consolação",
+      city: "São Paulo",
+      state: "SP"
+    }
+  },
+  6: {
+    rg: "67.890.123-4",
+    birthDate: "12/12/2005",
+    sex: "Feminino",
+    maritalStatus: "-",
+    nationality: "Brasileira",
+    fatherName: "Roberto Craig",
+    motherName: "Ana Craig",
+    attachmentsCount: 0,
+    contact: {
+      phone: "(11) 91122-3344",
+      email: "natali@untitledui.com",
+      schoolEmail: "natali@escolaclm.com"
+    },
+    address: {
+      zipCode: "05016-000",
+      number: "560",
+      street: "Rua Tito",
+      complement: "Casa 2",
+      neighborhood: "Lapa",
+      city: "São Paulo",
+      state: "SP"
+    }
+  },
+  7: {
+    rg: "78.901.234-5",
+    birthDate: "29/05/2006",
+    sex: "Masculino",
+    maritalStatus: "-",
+    nationality: "Brasileira",
+    fatherName: "-",
+    motherName: "Patrícia Cano",
+    attachmentsCount: 2,
+    contact: {
+      phone: "(11) 98765-2211",
+      email: "drew@untitledui.com",
+      schoolEmail: "drew@escolaclm.com"
+    },
+    address: {
+      zipCode: "03178-200",
+      number: "210",
+      street: "Rua do Oratório",
+      complement: "Sobrado",
+      neighborhood: "Mooca",
+      city: "São Paulo",
+      state: "SP"
+    }
+  },
+  8: {
+    rg: "89.012.345-6",
+    birthDate: "15/10/2004",
+    sex: "Masculino",
+    maritalStatus: "Solteiro",
+    nationality: "Brasileira",
+    fatherName: "João Diggs",
+    motherName: "Célia Diggs",
+    attachmentsCount: 1,
+    contact: {
+      phone: "(11) 97654-9988",
+      email: "orlando@untitledui.com",
+      schoolEmail: "orlando@escolaclm.com"
+    },
+    address: {
+      zipCode: "01153-000",
+      number: "19",
+      street: "Alameda Barão de Limeira",
+      complement: "Ap 11",
+      neighborhood: "Campos Elíseos",
+      city: "São Paulo",
+      state: "SP"
+    }
+  },
+  9: {
+    rg: "90.123.456-7",
+    birthDate: "03/02/2005",
+    sex: "-",
+    maritalStatus: "-",
+    nationality: "-",
+    fatherName: "-",
+    motherName: "-",
+    attachmentsCount: 4,
+    contact: {
+      phone: "(11) 96543-8877",
+      email: "andi@untitledui.com",
+      schoolEmail: "andi@escolaclm.com"
+    },
+    address: {
+      zipCode: "02022-011",
+      number: "330",
+      street: "Rua Voluntários da Pátria",
+      complement: "Sala 5",
+      neighborhood: "Santana",
+      city: "São Paulo",
+      state: "SP"
+    }
+  },
+  10: {
+    rg: "01.234.567-8",
+    birthDate: "27/08/2003",
+    sex: "Feminino",
+    maritalStatus: "Solteira",
+    nationality: "Brasileira",
+    fatherName: "-",
+    motherName: "Clara Morrison",
+    attachmentsCount: 1,
+    contact: {
+      phone: "(11) 95432-7766",
+      email: "kate@untitledui.com",
+      schoolEmail: "kate@escolaclm.com"
+    },
+    address: {
+      zipCode: "01509-001",
+      number: "144",
+      street: "Rua Vergueiro",
+      complement: "Cobertura",
+      neighborhood: "Liberdade",
+      city: "São Paulo",
+      state: "SP"
+    }
+  }
+};
+
+const drawerTabs: Array<{ id: DrawerTab; label: string }> = [
+  { id: "personal", label: "Dados pessoais" },
+  { id: "contact", label: "Contato" },
+  { id: "address", label: "Endereço" },
+  { id: "attachments", label: "Anexos" },
+  { id: "frequency", label: "Frequência" }
+];
+
+const frequencyFallbackByStudentId: Partial<Record<number, FrequencyRecord[]>> = {
+  1: [
+    {
+      id: "1-2024-01-24",
+      date: "24/01/2024",
+      moduleLabel: "Módulo I",
+      moduleTone: "violet",
+      className: "Classe 1",
+      classTone: "blue",
+      status: "Presente"
+    },
+    {
+      id: "1-2024-01-26",
+      date: "26/01/2024",
+      moduleLabel: "Módulo I",
+      moduleTone: "violet",
+      className: "Classe 1",
+      classTone: "blue",
+      status: "Ausente",
+      note: "Falta sem justificativa"
+    }
+  ]
+};
+
+const justificationTypeOptions: JustificationType[] = ["Atestado médico", "Declaração", "Outro"];
+const justificationStatusOptions: JustificationStatus[] = ["Pendente", "Aprovada", "Rejeitada"];
+const personalDocumentAcceptedExtensions = [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"];
+const personalDocumentAcceptedMimeTypes = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png"
+];
+
+const manualRegistrationSteps = [
+  { id: "personal", label: "Dados pessoais" },
+  { id: "documents", label: "Documentos" },
+  { id: "enrollment", label: "Matrícula" },
+  { id: "attachments", label: "Anexos" }
+];
+
+const scannedRegistrationSteps = [
+  { id: "instructions", label: "Instruções" },
+  { id: "upload", label: "Upload" },
+  { id: "review", label: "Revisão" },
+  { id: "module", label: "Módulo" },
+  { id: "confirm", label: "Confirmar" }
+];
+
+function parseBrazilianDate(value: string) {
+  const [day, month, year] = value.split("/").map(Number);
+
+  return new Date(year, month - 1, day).getTime();
+}
+
+function getStudentFrequencyRecords(
+  studentId: number,
+  studentName: string,
+  moduleLabel: string,
+  moduleTone: FrequencyRecord["moduleTone"],
+  className: string,
+  classTone: FrequencyRecord["classTone"],
+  entries: AttendanceHistoryEntry[]
+) {
+  const fallback = frequencyFallbackByStudentId[studentId];
+
+  if (fallback) {
+    return fallback;
+  }
+
+  const normalizedStudentName = normalizeStudentText(studentName).toLowerCase();
+
+  return entries
+    .flatMap((entry) =>
+      entry.students
+        .filter((student) => {
+          const byId = student.id === studentId;
+          const byName = normalizeStudentText(student.name).toLowerCase() === normalizedStudentName;
+          return byId || byName;
+        })
+        .map((student) => ({
+          id: `${entry.id}-${student.id}`,
+          date: entry.date,
+          moduleLabel,
+          moduleTone,
+          className,
+          classTone,
+          status: student.status,
+          note: student.note
+        }))
+    )
+    .sort((left, right) => parseBrazilianDate(right.date) - parseBrazilianDate(left.date));
+}
+
+function compareStudentStatus(left: StudentStatus, right: StudentStatus) {
+  const order = { Ativo: 0, Inativo: 1, Trancamento: 2 };
+  return order[left] - order[right];
+}
+
+function normalizeStudentText(value: string) {
+  return value;
+}
+
+function formatIsoDateToBrazilianDate(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const [year, month, day] = value.split("-");
+
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year}`;
+}
+
+function formatBrazilianDateToIso(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const [day, month, year] = value.split("/");
+
+  if (!day || !month || !year) {
+    return value;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatBytesToReadableSize(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function applyPhoneMask(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+  if (digits.length === 0) {
+    return "";
+  }
+  if (digits.length <= 2) {
+    return `(${digits}`;
+  }
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function applyRgMask(value: string) {
+  const digits = onlyDigits(value).slice(0, 9);
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 5) {
+    return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  }
+  if (digits.length <= 8) {
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+  }
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}-${digits.slice(8)}`;
+}
+
+function applyCpfMask(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+  if (digits.length <= 3) {
+    return digits;
+  }
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  }
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  }
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+function applyCepMask(value: string) {
+  const digits = onlyDigits(value).slice(0, 8);
+  if (digits.length <= 5) {
+    return digits;
+  }
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+function hasSupportedPersonalDocumentExtension(fileName: string) {
+  const normalizedName = fileName.toLowerCase();
+  return personalDocumentAcceptedExtensions.some((extension) => normalizedName.endsWith(extension));
+}
+
+function DrawerField({ label, value }: { label: string; value: string }) {
   return (
-    <button className="filter-button" type="button">
-      <span>{label}</span>
-      <ChevronDown aria-hidden="true" />
-    </button>
+    <div className="student-field">
+      <span className="student-field__label">{label}</span>
+      <span className="student-field__value">{value}</span>
+    </div>
   );
 }
 
-type PillProps = {
-  label: string;
-  tone: "violet" | "orange" | "blue" | "pink";
-};
+function ContactLinkRow({ label, value, href }: { label: string; value: string; href: string }) {
+  const handleCopyValue = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // No-op fallback: if clipboard permission fails, keep UI stable.
+    }
+  };
 
-function Pill({ label, tone }: PillProps) {
-  return <span className={`pill pill--${tone}`}>{label}</span>;
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="student-field__label">{label}</span>
+      <div className="flex items-center justify-between gap-3 px-0 py-0">
+        <a className="min-w-0 truncate text-sm font-medium text-[var(--color-brand-primary-main)] hover:underline" href={href}>
+          {value}
+        </a>
+        <IconButton
+          className="h-8 w-8 min-h-8 rounded-full border-transparent bg-transparent text-[var(--color-neutral-500)] hover:bg-[var(--color-neutral-100)]"
+          icon={<Copy aria-hidden="true" size={16} />}
+          label={`Copiar ${label}`}
+          onClick={handleCopyValue}
+        />
+      </div>
+    </div>
+  );
 }
 
-/**
- * Página de listagem de alunos baseada no frame do Figma.
- */
-export function StudentsPage() {
+function AddressContent({ student }: { student: StudentRecord }) {
   return (
-    <main className="students-page">
-      <section className="page-header">
-        <div className="page-header__copy">
-          <h1>Alunos -</h1>
-          <p>Gerencie o cadastro completo de alunos.</p>
-        </div>
+    <Card className="student-card gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <DrawerField label="CEP" value={student.details.address.zipCode} />
+        <DrawerField label="Número" value={student.details.address.number} />
+      </div>
+      <DrawerField label="Rua" value={student.details.address.street} />
+      <DrawerField label="Complemento" value={student.details.address.complement} />
+      <DrawerField label="Bairro" value={student.details.address.neighborhood} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <DrawerField label="Cidade" value={student.details.address.city} />
+        <DrawerField label="Estado" value={student.details.address.state} />
+      </div>
+    </Card>
+  );
+}
 
-        <button className="primary-button" type="button">
-          <Plus aria-hidden="true" />
-          <span>Adicionar aluno</span>
-        </button>
-      </section>
+function FrequencyIcon({ name }: { name: "calendar" | "chevron-down" }) {
+  const sharedProps = {
+    viewBox: "0 0 20 20",
+    fill: "none",
+    "aria-hidden": true as const
+  };
 
-      <section className="filters" aria-label="Busca e filtros">
-        <label className="search-field">
-          <Search aria-hidden="true" />
-          <input
-            type="text"
-            placeholder="Buscar por nome, telefone ou email..."
-            aria-label="Buscar por nome, telefone ou email"
+  switch (name) {
+    case "calendar":
+      return (
+        <svg {...sharedProps}>
+          <path
+            d="M6.667 1.667v3.333M13.333 1.667v3.333M2.917 8.333h14.166M4.583 3.333h10.834a1.667 1.667 0 0 1 1.666 1.667v10.833a1.667 1.667 0 0 1-1.666 1.667H4.583a1.667 1.667 0 0 1-1.666-1.667V5A1.667 1.667 0 0 1 4.583 3.333Z"
+            stroke="currentColor"
+            strokeWidth="1.67"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
-        </label>
+        </svg>
+      );
+    case "chevron-down":
+      return (
+        <svg {...sharedProps}>
+          <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
 
-        <div className="filters__group">
-          <FilterButton label="Filtrar por Módulos" />
-          <FilterButton label="Filtrar por Turmas" />
-          <FilterButton label="Filtrar por Status" />
+function FrequencyTabContent({
+  student,
+  onOpenFullHistory
+}: {
+  student: StudentRecord;
+  onOpenFullHistory: () => void;
+}) {
+  const recentRecords = student.attendance.slice(0, 1);
+
+  return (
+    <Card className="gap-0 overflow-hidden p-0">
+      <div className="flex flex-col gap-1 p-4">
+        <h3 className="m-0 text-[var(--color-content-primary)] text-[var(--text-body-medium)] font-semibold leading-[1.4]">Histórico Recente</h3>
+        <p className="m-0 text-sm leading-[1.43] text-[var(--color-content-tertiary)]">
+          Últimas {student.attendance.length} ocorrências de presença
+        </p>
+      </div>
+
+      {recentRecords.length > 0 ? (
+        <div className="flex flex-col px-4 pb-2">
+          {recentRecords.map((record) => (
+            <article
+              key={record.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-3"
+            >
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-[var(--color-content-primary)]">
+                  <span className="inline-flex h-5 w-5 items-center justify-center text-[var(--color-content-tertiary)]" aria-hidden="true">
+                    <FrequencyIcon name="calendar" />
+                  </span>
+                  <strong className="text-sm font-semibold leading-[1.35]">{record.date}</strong>
+                </div>
+                <span className="text-sm leading-[1.43] text-[var(--color-content-tertiary)]">{record.className}</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <FrequencyStatusBadge status={record.status} />
+                <IconButton
+                  className="h-8 w-8 min-h-8 rounded-md text-[var(--color-content-tertiary)]"
+                  icon={<FrequencyIcon name="chevron-down" />}
+                  label={`Ver detalhes da presença de ${record.date}`}
+                />
+              </div>
+            </article>
+          ))}
         </div>
-      </section>
-
-      <TableCard title="Alunos" titleId="students-title" countLabel="200 alunos">
-
-        <div className="table-scroll">
-          <table className="students-table">
-            <thead>
-              <tr>
-                <th>
-                  <div className="header-with-checkbox">
-                    <input type="checkbox" aria-label="Selecionar todos" />
-                    <span>Nome</span>
-                  </div>
-                </th>
-                <th>
-                  <div className="header-sort">
-                    <span>Status</span>
-                    <ArrowDown aria-hidden="true" />
-                  </div>
-                </th>
-                <th>Contato</th>
-                <th>Módulo</th>
-                <th>Turma</th>
-                <th aria-label="Ações" />
-              </tr>
-            </thead>
-
-            <tbody>
-              {students.map((student) => (
-                <tr key={student.id}>
-                  <td>
-                    <div className="student-cell">
-                      <input type="checkbox" aria-label={`Selecionar ${student.name}`} />
-
-                      {student.avatar ? (
-                        <img
-                          className="student-avatar"
-                          src={student.avatar}
-                          alt=""
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <span className="student-avatar student-avatar--initials">
-                          {student.initials}
-                        </span>
-                      )}
-
-                      <span className="student-name">{student.name}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <StatusBadge status={student.status} />
-                  </td>
-                  <td>
-                    <div className="contact-cell">
-                      <span>{student.phone}</span>
-                      <span>{student.email}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <Pill label={student.module} tone={student.moduleTone} />
-                  </td>
-                  <td>
-                    <Pill label={student.className} tone={student.classTone} />
-                  </td>
-                  <td>
-                    <div className="row-actions">
-                      <button className="icon-button" type="button" aria-label={`Excluir ${student.name}`}>
-                        <Trash2 aria-hidden="true" />
-                      </button>
-                      <button className="icon-button" type="button" aria-label={`Editar ${student.name}`}>
-                        <Pencil aria-hidden="true" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      ) : (
+        <div className="flex min-h-[112px] items-center justify-center px-4 py-6 text-center text-[var(--text-body-medium)] leading-[1.43] text-[var(--color-neutral-500)]">
+          <p className="m-0">Nenhuma ocorrência de frequência registrada.</p>
         </div>
+      )}
 
-        <footer className="pagination">
-          <button className="pagination__button" type="button">
-            <ChevronLeft aria-hidden="true" />
-            <span>Previous</span>
-          </button>
+      <div className="border-t border-[var(--color-surface-border)] p-4">
+        <Button className="h-auto min-h-0 p-0 text-sm font-medium" type="button" variant="ghost" onClick={onOpenFullHistory}>
+          Ver histórico completo ({student.attendance.length} {student.attendance.length === 1 ? "registro" : "registros"})
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
-          <div className="pagination__numbers" aria-label="Paginação">
-            {["1", "2", "3", "...", "8", "9", "10"].map((item, index) => (
-              <button
-                key={item}
-                className={`pagination__number ${index === 0 ? "is-active" : ""}`}
-                type="button"
-              >
-                {item}
-              </button>
-            ))}
+function AttachmentFileItem({
+  record,
+  onView,
+  onDownload,
+  onRequestDelete
+}: {
+  record: PersonalAttachmentRecord;
+  onView: (record: PersonalAttachmentRecord) => void;
+  onDownload: (record: PersonalAttachmentRecord) => void;
+  onRequestDelete: (record: PersonalAttachmentRecord) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--color-surface-border)] bg-[#f9fafb] p-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <AttachmentIcon name="file" className="attachment-symbol attachment-symbol--file-item" />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Button
+            className="h-auto min-h-0 w-fit justify-start p-0 text-left text-sm font-semibold tracking-[-0.28px] text-[var(--color-neutral-850)] underline"
+            size="sm"
+            type="button"
+            variant="ghost"
+            onClick={() => onView(record)}
+          >
+            {record.file.name}
+          </Button>
+          <span className="text-xs tracking-[-0.24px] text-[#667085]">
+            {formatBytesToReadableSize(record.file.size)} - {record.createdAtLabel}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1">
+        <IconButton
+          className="h-7 w-7 min-h-7 rounded border-transparent"
+          icon={<AttachmentIcon name="view" className="attachment-symbol attachment-symbol--icon-button" />}
+          label={`Visualizar ${record.file.name}`}
+          onClick={() => onView(record)}
+        />
+        <IconButton
+          className="h-7 w-7 min-h-7 rounded border-transparent"
+          icon={<AttachmentIcon name="download" className="attachment-symbol attachment-symbol--icon-button" />}
+          label={`Baixar ${record.file.name}`}
+          onClick={() => onDownload(record)}
+        />
+        <IconButton
+          className="h-7 w-7 min-h-7 rounded border-transparent"
+          icon={<AttachmentIcon name="trash" className="attachment-symbol attachment-symbol--icon-button" />}
+          label={`Excluir ${record.file.name}`}
+          onClick={() => onRequestDelete(record)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function EmptyPersonalAttachmentState() {
+  return (
+    <div className="flex min-h-[132px] flex-col items-center justify-center gap-3">
+      <AttachmentIcon name="file" className="attachment-symbol attachment-symbol--empty-state" />
+      <p className="m-0 text-center text-[var(--text-body-large)] leading-[1.45] text-[#667085]">Nenhum documento anexado</p>
+    </div>
+  );
+}
+
+function StudentDocumentUploadModal({
+  isOpen,
+  fileError,
+  onClose,
+  onFileSelected
+}: {
+  isOpen: boolean;
+  fileError: string;
+  onClose: () => void;
+  onFileSelected: (file: File | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const acceptedFilesHint = "PDF, DOC, DOCX, JPG ou PNG (max. 10MB)";
+  const acceptedInput = ".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+
+  return (
+    <div className="justification-modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        className="justification-modal w-full max-w-[440px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="document-upload-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="justification-modal__header">
+          <div className="justification-modal__copy">
+            <h2 id="document-upload-modal-title">Adicionar anexo</h2>
           </div>
 
-          <button className="pagination__button" type="button">
-            <span>Next</span>
-            <ChevronRight aria-hidden="true" />
+          <button className="justification-modal__close" type="button" aria-label="Fechar modal" onClick={onClose}>
+            ×
           </button>
-        </footer>
-      </TableCard>
-    </main>
+        </div>
+
+        <div className="px-6 pb-6">
+          <div
+            className="relative flex min-h-[212px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#c2c5c8] bg-[#fafafb] px-8 py-4 text-center"
+            onDragOver={(event) => {
+              event.preventDefault();
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              onFileSelected(event.dataTransfer.files?.[0] ?? null);
+            }}
+          >
+            <input
+              ref={inputRef}
+              type="file"
+              className="sr-only"
+              accept={acceptedInput}
+              onChange={(event) => {
+                onFileSelected(event.target.files?.[0] ?? null);
+                event.target.value = "";
+              }}
+            />
+            <span className="inline-flex h-10 w-10 items-center justify-center text-[#4a4f57]" aria-hidden="true">
+              <Upload />
+            </span>
+            <p className="m-0 text-[var(--text-body-medium)] font-medium leading-6 tracking-[-0.28px] text-[var(--color-content-primary)]">Clique para fazer upload ou arraste e solte</p>
+            <p className="m-0 mb-1.5 text-[var(--text-body-small)] leading-6 tracking-[-0.24px] text-[#44484d]">{acceptedFilesHint}</p>
+            <Button
+              className="min-h-11"
+              type="button"
+              variant="primary"
+              onClick={() => {
+                inputRef.current?.click();
+              }}
+            >
+              Selecionar arquivos
+            </Button>
+          </div>
+          {fileError ? <small className="mt-2 block text-xs leading-4 text-[#b42318]">{fileError}</small> : null}
+        </div>
+      </div>
+    </div>
   );
 }
+
+function StudentAttachmentDeleteModal({
+  isOpen,
+  attachmentName,
+  onClose,
+  onConfirm
+}: {
+  isOpen: boolean;
+  attachmentName: string;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="justification-modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        className="justification-modal max-w-[448px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="attachment-delete-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex flex-col gap-4 p-6">
+          <h2 id="attachment-delete-modal-title">Remover anexo</h2>
+          <p>
+            Tem certeza que deseja remover este anexo? Esta ação não pode ser desfeita.
+          </p>
+          <div className="flex w-full gap-2">
+            <Button className="min-h-11 flex-1 border border-[#d9dbdd]" type="button" variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button className="min-h-11 flex-1" type="button" variant="danger" onClick={onConfirm} aria-label={`Remover ${attachmentName}`}>
+              Remover
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RegistrationTypeModal({
+  isOpen,
+  onClose,
+  onSelectManual,
+  onSelectOcr
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectManual: () => void;
+  onSelectOcr: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="registration-choice-modal-title"
+      title="Adicionar Aluno"
+      subtitle="Escolha como deseja realizar o cadastro"
+      overlayClassName="registration-choice-modal-overlay"
+      className="registration-choice-modal"
+      headerClassName="registration-choice-modal__header"
+      copyClassName="registration-choice-modal__copy"
+      closeButtonClassName="registration-choice-modal__close"
+      bodyClassName="registration-choice-modal__body"
+    >
+      <div className="registration-choice-modal__options">
+        <button className="registration-choice-option registration-choice-option--manual" type="button" onClick={onSelectManual}>
+          <span className="registration-choice-option__icon registration-choice-option__icon--manual" aria-hidden="true">
+            <FileText />
+          </span>
+          <span className="registration-choice-option__title">Cadastro Manual</span>
+          <span className="registration-choice-option__description">
+            Preencha todos os dados do aluno manualmente através de um formulário completo
+          </span>
+          <span className="registration-choice-option__tag">Modo tradicional</span>
+        </button>
+
+        <button className="registration-choice-option registration-choice-option--ocr" type="button" onClick={onSelectOcr}>
+          <span className="registration-choice-option__recommended">Recomendado</span>
+          <span className="registration-choice-option__icon registration-choice-option__icon--ocr" aria-hidden="true">
+            <Upload />
+          </span>
+          <span className="registration-choice-option__title">Escaneamento de Documentos</span>
+          <span className="registration-choice-option__description">
+            Envie fotos dos documentos e deixe o sistema preencher os dados automaticamente
+          </span>
+          <span className="registration-choice-option__chip-group">
+            <span className="registration-choice-option__chip">Mais rápido</span>
+            <span className="registration-choice-option__chip">Menos erros</span>
+          </span>
+        </button>
+      </div>
+
+      <div className="registration-choice-modal__tip">
+        <p>
+          <span>Dica</span>
+          <strong>Dica:</strong> O escaneamento de documentos reduz o tempo de cadastro em até 70% e minimiza erros de digitação.
+        </p>
+      </div>
+    </ModalContainer>
+  );
+}
+
+function ManualStudentRegistrationModal({
+  isOpen,
+  onClose
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  const [personalFormValues, setPersonalFormValues] = useState({
+    fullName: "",
+    birthDate: "",
+    sex: "",
+    maritalStatus: "",
+    nationality: "",
+    email: "",
+    schoolEmail: "",
+    phone: ""
+  });
+  const [documentsFormValues, setDocumentsFormValues] = useState({
+    rg: "",
+    cpf: "",
+    street: "",
+    number: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    zipCode: ""
+  });
+  const [enrollmentFormValues, setEnrollmentFormValues] = useState({
+    module: "",
+    className: "",
+    status: "",
+    fatherName: "",
+    motherName: ""
+  });
+  const [attachmentsFormValues, setAttachmentsFormValues] = useState({
+    photo: null as File | null,
+    rg: null as File | null,
+    cnh: null as File | null,
+    residenceProof: null as File | null
+  });
+
+  const selectPlaceholder = { value: "", label: "Selecione" };
+  const sexOptions = [selectPlaceholder, { value: "feminino", label: "Feminino" }, { value: "masculino", label: "Masculino" }];
+  const maritalStatusOptions = [
+    selectPlaceholder,
+    { value: "solteiro", label: "Solteiro(a)" },
+    { value: "casado", label: "Casado(a)" },
+    { value: "divorciado", label: "Divorciado(a)" },
+    { value: "viuvo", label: "Viúvo(a)" }
+  ];
+  const stateOptions = [
+    { value: "", label: "Selecione" },
+    { value: "AC", label: "AC" },
+    { value: "AL", label: "AL" },
+    { value: "AP", label: "AP" },
+    { value: "AM", label: "AM" },
+    { value: "BA", label: "BA" },
+    { value: "CE", label: "CE" },
+    { value: "DF", label: "DF" },
+    { value: "ES", label: "ES" },
+    { value: "GO", label: "GO" },
+    { value: "MA", label: "MA" },
+    { value: "MT", label: "MT" },
+    { value: "MS", label: "MS" },
+    { value: "MG", label: "MG" },
+    { value: "PA", label: "PA" },
+    { value: "PB", label: "PB" },
+    { value: "PR", label: "PR" },
+    { value: "PE", label: "PE" },
+    { value: "PI", label: "PI" },
+    { value: "RJ", label: "RJ" },
+    { value: "RN", label: "RN" },
+    { value: "RS", label: "RS" },
+    { value: "RO", label: "RO" },
+    { value: "RR", label: "RR" },
+    { value: "SC", label: "SC" },
+    { value: "SP", label: "SP" },
+    { value: "SE", label: "SE" },
+    { value: "TO", label: "TO" }
+  ];
+  const moduleOptions = [
+    { value: "", label: "Selecione" },
+    { value: "Módulo I", label: "Módulo I" },
+    { value: "Módulo II", label: "Módulo II" },
+    { value: "Módulo III", label: "Módulo III" }
+  ];
+  const enrollmentStatusOptions = [
+    { value: "", label: "Selecione" },
+    { value: "Ativo", label: "Ativo" },
+    { value: "Inativo", label: "Inativo" },
+    { value: "Trancamento", label: "Trancamento" }
+  ];
+
+  const classOptions = useMemo(() => {
+    if (!enrollmentFormValues.module) {
+      return [{ value: "", label: "Selecione" }];
+    }
+
+    return [
+      { value: "", label: "Selecione" },
+      ...getClassOptions(enrollmentFormValues.module as ModuleFilter)
+        .filter((option) => option !== "Todas")
+        .map((option) => ({ value: option, label: option }))
+    ];
+  }, [enrollmentFormValues.module]);
+
+  const isStep1Valid =
+    personalFormValues.fullName.trim() !== "" &&
+    personalFormValues.birthDate.trim() !== "" &&
+    personalFormValues.email.trim() !== "" &&
+    personalFormValues.phone.trim() !== "";
+  const isStep2Valid = documentsFormValues.rg.trim() !== "";
+  const isStep3Valid =
+    enrollmentFormValues.module.trim() !== "" &&
+    enrollmentFormValues.className.trim() !== "" &&
+    enrollmentFormValues.status.trim() !== "";
+  const isStep4Valid = true;
+  const isContinueDisabled =
+    (currentStep === 1 && !isStep1Valid) ||
+    (currentStep === 2 && !isStep2Valid) ||
+    (currentStep === 3 && !isStep3Valid) ||
+    (currentStep === 4 && !isStep4Valid);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(1);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [currentStep, isOpen]);
+
+  useEffect(() => {
+    if (!enrollmentFormValues.module) {
+      setEnrollmentFormValues((current) => ({
+        ...current,
+        className: ""
+      }));
+      return;
+    }
+
+    const availableClasses = getClassOptions(enrollmentFormValues.module as ModuleFilter).filter((option) => option !== "Todas");
+    if (!availableClasses.includes(enrollmentFormValues.className)) {
+      setEnrollmentFormValues((current) => ({
+        ...current,
+        className: ""
+      }));
+    }
+  }, [enrollmentFormValues.className, enrollmentFormValues.module]);
+
+  function updatePersonalField(field: keyof typeof personalFormValues, value: string) {
+    const nextValue = field === "phone" ? applyPhoneMask(value) : value;
+
+    setPersonalFormValues((current) => ({
+      ...current,
+      [field]: nextValue
+    }));
+  }
+
+  function updateDocumentsField(field: keyof typeof documentsFormValues, value: string) {
+    const nextValue =
+      field === "rg"
+        ? applyRgMask(value)
+        : field === "cpf"
+          ? applyCpfMask(value)
+          : field === "zipCode"
+            ? applyCepMask(value)
+            : value;
+
+    setDocumentsFormValues((current) => ({
+      ...current,
+      [field]: nextValue
+    }));
+  }
+
+  function updateEnrollmentField(field: keyof typeof enrollmentFormValues, value: string) {
+    setEnrollmentFormValues((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  function updateAttachmentField(field: keyof typeof attachmentsFormValues, value: File | null) {
+    setAttachmentsFormValues((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="manual-student-modal-title"
+      title="Adicionar Aluno"
+      subtitle="Preencha os dados do novo aluno"
+      overlayClassName="manual-student-modal-overlay"
+      className="manual-student-modal"
+      headerClassName="manual-student-modal__header"
+      copyClassName="manual-student-modal__copy"
+      closeButtonClassName="manual-student-modal__close"
+      bodyClassName="manual-student-modal__body"
+      footerClassName="manual-student-modal__footer"
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="manual-student-modal__cancel"
+            onClick={() => {
+              if (currentStep === 1) {
+                onClose();
+                return;
+              }
+
+              setCurrentStep((current) => (current === 4 ? 3 : current === 3 ? 2 : 1));
+            }}
+          >
+            {currentStep === 1 ? "Cancelar" : "Voltar"}
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="manual-student-modal__continue"
+            disabled={isContinueDisabled}
+            onClick={() => {
+              if (currentStep === 1) {
+                setCurrentStep(2);
+                return;
+              }
+
+              if (currentStep === 2) {
+                setCurrentStep(3);
+                return;
+              }
+
+              if (currentStep === 3) {
+                setCurrentStep(4);
+                return;
+              }
+
+              onClose();
+            }}
+          >
+            {currentStep === 4 ? "Finalizar cadastro" : "Continuar"}
+          </Button>
+        </>
+      }
+    >
+      <div className="manual-student-modal__stepper">
+          <Stepper steps={manualRegistrationSteps} currentStep={currentStep} ariaLabel="Etapas do cadastro de aluno" />
+      </div>
+
+      <div ref={contentRef} className="manual-student-modal__content">
+          {currentStep === 1 ? (
+            <div className="manual-student-modal__form">
+              <label className="manual-student-modal__field manual-student-modal__field--full">
+                <span>
+                  Nome completo <strong>*</strong>
+                </span>
+                <Input
+                  value={personalFormValues.fullName}
+                  showLabel={false}
+                  required
+                  placeholder="Digite o nome completo"
+                  onChange={(event) => updatePersonalField("fullName", event.target.value)}
+                />
+              </label>
+
+              <label className="manual-student-modal__field">
+                <span>
+                  Data de nascimento <strong>*</strong>
+                </span>
+                <DatePicker
+                  value={personalFormValues.birthDate}
+                  required
+                  onChange={(event) => updatePersonalField("birthDate", event.target.value)}
+                />
+              </label>
+
+              <div className="manual-student-modal__field">
+                <span>Sexo</span>
+                <SelectField
+                  ariaLabel="Selecione o sexo"
+                  value={personalFormValues.sex}
+                  variant="form"
+                  options={sexOptions}
+                  onChange={(event) => updatePersonalField("sex", event.target.value)}
+                />
+              </div>
+
+              <div className="manual-student-modal__field">
+                <span>Estado civil</span>
+                <SelectField
+                  ariaLabel="Selecione o estado civil"
+                  value={personalFormValues.maritalStatus}
+                  variant="form"
+                  options={maritalStatusOptions}
+                  onChange={(event) => updatePersonalField("maritalStatus", event.target.value)}
+                />
+              </div>
+
+              <label className="manual-student-modal__field">
+                <span>Nacionalidade</span>
+                <Input
+                  value={personalFormValues.nationality}
+                  showLabel={false}
+                  placeholder="Ex: Brasileira"
+                  onChange={(event) => updatePersonalField("nationality", event.target.value)}
+                />
+              </label>
+
+              <label className="manual-student-modal__field manual-student-modal__field--full">
+                <span>
+                  E-mail <strong>*</strong>
+                </span>
+                <Input
+                  type="email"
+                  value={personalFormValues.email}
+                  showLabel={false}
+                  required
+                  placeholder="exemplo@email.com"
+                  onChange={(event) => updatePersonalField("email", event.target.value)}
+                />
+              </label>
+
+              <label className="manual-student-modal__field manual-student-modal__field--full">
+                <span>E-mail escolar</span>
+                <Input
+                  type="email"
+                  value={personalFormValues.schoolEmail}
+                  showLabel={false}
+                  placeholder="exemplo@email.com"
+                  onChange={(event) => updatePersonalField("schoolEmail", event.target.value)}
+                />
+              </label>
+
+              <label className="manual-student-modal__field manual-student-modal__field--full">
+                <span>
+                  Telefone <strong>*</strong>
+                </span>
+                <Input
+                  value={personalFormValues.phone}
+                  showLabel={false}
+                  inputMode="numeric"
+                  maxLength={15}
+                  required
+                  placeholder="(00) 00000-0000"
+                  onChange={(event) => updatePersonalField("phone", event.target.value)}
+                />
+              </label>
+            </div>
+          ) : currentStep === 2 ? (
+            <div className="manual-student-modal__documents-content">
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">Documentos</h3>
+                <div className="manual-student-modal__row">
+                  <label className="manual-student-modal__field">
+                    <span>
+                      RG <strong>*</strong>
+                    </span>
+                    <Input
+                      value={documentsFormValues.rg}
+                      showLabel={false}
+                      inputMode="numeric"
+                      maxLength={12}
+                      required
+                      placeholder="00.000.000-0"
+                      onChange={(event) => updateDocumentsField("rg", event.target.value)}
+                    />
+                  </label>
+                  <label className="manual-student-modal__field">
+                    <span>CPF</span>
+                    <Input
+                      value={documentsFormValues.cpf}
+                      showLabel={false}
+                      inputMode="numeric"
+                      maxLength={14}
+                      placeholder="000.000.000-00"
+                      onChange={(event) => updateDocumentsField("cpf", event.target.value)}
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">Endereço</h3>
+                <div className="manual-student-modal__row manual-student-modal__row--wide-narrow">
+                  <label className="manual-student-modal__field">
+                    <span>Rua</span>
+                    <Input
+                      value={documentsFormValues.street}
+                      showLabel={false}
+                      placeholder="Nome da rua"
+                      onChange={(event) => updateDocumentsField("street", event.target.value)}
+                    />
+                  </label>
+                  <label className="manual-student-modal__field">
+                    <span>Número</span>
+                    <Input
+                      value={documentsFormValues.number}
+                      showLabel={false}
+                      placeholder="Nº"
+                      onChange={(event) => updateDocumentsField("number", event.target.value)}
+                    />
+                  </label>
+                </div>
+                <label className="manual-student-modal__field">
+                  <span>Bairro</span>
+                  <Input
+                    value={documentsFormValues.neighborhood}
+                    showLabel={false}
+                    placeholder="Nome do bairro"
+                    onChange={(event) => updateDocumentsField("neighborhood", event.target.value)}
+                  />
+                </label>
+                <div className="manual-student-modal__row manual-student-modal__row--wide-narrow">
+                  <label className="manual-student-modal__field">
+                    <span>Cidade</span>
+                    <Input
+                      value={documentsFormValues.city}
+                      showLabel={false}
+                      placeholder="Nome da cidade"
+                      onChange={(event) => updateDocumentsField("city", event.target.value)}
+                    />
+                  </label>
+                  <div className="manual-student-modal__field">
+                    <span>UF</span>
+                    <SelectField
+                      ariaLabel="Selecione a UF"
+                      value={documentsFormValues.state}
+                      variant="form"
+                      options={stateOptions}
+                      onChange={(event) => updateDocumentsField("state", event.target.value)}
+                    />
+                  </div>
+                </div>
+                <label className="manual-student-modal__field">
+                  <span>CEP</span>
+                  <Input
+                    value={documentsFormValues.zipCode}
+                    showLabel={false}
+                    inputMode="numeric"
+                    maxLength={9}
+                    placeholder="00000-000"
+                    onChange={(event) => updateDocumentsField("zipCode", event.target.value)}
+                  />
+                </label>
+              </section>
+            </div>
+          ) : currentStep === 3 ? (
+            <div className="manual-student-modal__documents-content">
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">
+                  Matrícula <strong>*</strong>
+                </h3>
+                <div className="manual-student-modal__field">
+                  <span>
+                    Módulo <strong>*</strong>
+                  </span>
+                  <SelectField
+                    ariaLabel="Selecione o módulo"
+                    value={enrollmentFormValues.module}
+                    variant="form"
+                    required
+                    options={moduleOptions}
+                    onChange={(event) => updateEnrollmentField("module", event.target.value)}
+                  />
+                </div>
+                <div className="manual-student-modal__field">
+                  <span>
+                    Turma <strong>*</strong>
+                  </span>
+                  <SelectField
+                    ariaLabel="Selecione a turma"
+                    value={enrollmentFormValues.className}
+                    variant="form"
+                    required
+                    options={classOptions}
+                    disabled={!enrollmentFormValues.module}
+                    onChange={(event) => updateEnrollmentField("className", event.target.value)}
+                  />
+                  <small className="manual-student-modal__hint">Selecione um módulo primeiro</small>
+                </div>
+                <div className="manual-student-modal__field">
+                  <span>
+                    Status <strong>*</strong>
+                  </span>
+                  <SelectField
+                    ariaLabel="Selecione o status da matrícula"
+                    value={enrollmentFormValues.status}
+                    variant="form"
+                    required
+                    options={enrollmentStatusOptions}
+                    onChange={(event) => updateEnrollmentField("status", event.target.value)}
+                  />
+                </div>
+              </section>
+
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">Informações familiares</h3>
+                <label className="manual-student-modal__field">
+                  <span>Nome do pai</span>
+                  <Input
+                    value={enrollmentFormValues.fatherName}
+                    showLabel={false}
+                    placeholder="Nome completo do pai"
+                    onChange={(event) => updateEnrollmentField("fatherName", event.target.value)}
+                  />
+                </label>
+                <label className="manual-student-modal__field">
+                  <span>Nome da mãe</span>
+                  <Input
+                    value={enrollmentFormValues.motherName}
+                    showLabel={false}
+                    placeholder="Nome completo da mãe"
+                    onChange={(event) => updateEnrollmentField("motherName", event.target.value)}
+                  />
+                </label>
+              </section>
+            </div>
+          ) : (
+            <div className="manual-student-modal__documents-content">
+              <section className="manual-student-modal__section">
+                <h3 className="manual-student-modal__section-title">
+                  Documentos necessários
+                </h3>
+
+                <div className="manual-student-modal__upload-grid">
+                  <DocumentUploadField
+                    label="Foto 3x4"
+                    hint=""
+                    selectedFile={attachmentsFormValues.photo}
+                    onFileChange={(file) => updateAttachmentField("photo", file)}
+                    onFileRemove={() => updateAttachmentField("photo", null)}
+                  />
+                  <DocumentUploadField
+                    label="RG"
+                    hint=""
+                    selectedFile={attachmentsFormValues.rg}
+                    onFileChange={(file) => updateAttachmentField("rg", file)}
+                    onFileRemove={() => updateAttachmentField("rg", null)}
+                  />
+                  <DocumentUploadField
+                    label="CNH"
+                    hint=""
+                    selectedFile={attachmentsFormValues.cnh}
+                    onFileChange={(file) => updateAttachmentField("cnh", file)}
+                    onFileRemove={() => updateAttachmentField("cnh", null)}
+                  />
+                  <DocumentUploadField
+                    label="Comprovante de residência"
+                    hint=""
+                    selectedFile={attachmentsFormValues.residenceProof}
+                    onFileChange={(file) => updateAttachmentField("residenceProof", file)}
+                    onFileRemove={() => updateAttachmentField("residenceProof", null)}
+                  />
+                </div>
+              </section>
+            </div>
+          )}
+      </div>
+    </ModalContainer>
+  );
+}
+
+function ScannedStudentRegistrationModal({
+  isOpen,
+  onClose,
+  onOpenProcessing,
+  initialUploadFiles = emptyScannedUploadFiles,
+  onUploadFilesChange = () => undefined
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onOpenProcessing: (files: ScannedUploadFiles) => void;
+  initialUploadFiles?: ScannedUploadFiles;
+  onUploadFilesChange?: (files: ScannedUploadFiles) => void;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [uploadFiles, setUploadFiles] = useState<ScannedUploadFiles>(initialUploadFiles ?? emptyScannedUploadFiles);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setCurrentStep(1);
+    setUploadFiles(initialUploadFiles ?? emptyScannedUploadFiles);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    onUploadFilesChange(uploadFiles);
+  }, [isOpen, onUploadFilesChange, uploadFiles]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [currentStep, isOpen]);
+
+  function updateUploadFile(field: keyof typeof uploadFiles, file: File | null) {
+    setUploadFiles((current) => ({
+      ...current,
+      [field]: file
+    }));
+  }
+
+  function UploadCard({
+    field,
+    title,
+    description,
+    icon
+  }: {
+    field: keyof typeof uploadFiles;
+    title: string;
+    description: string;
+    icon: ReactNode;
+  }) {
+    return (
+      <article className="scanned-student-modal__upload-card">
+        <div className="scanned-student-modal__upload-card-header">
+          <span className="scanned-student-modal__document-icon" aria-hidden="true">
+            {icon}
+          </span>
+          <div>
+            <strong>{title}</strong>
+            <span>{description}</span>
+          </div>
+        </div>
+        <DocumentUploadField
+          className="scanned-student-modal__upload-field"
+          showLabel={false}
+          uploadTitle="Clique para enviar"
+          hint="ou arraste aqui"
+          attachedHint="Clique para alterar ou arraste aqui"
+          statusLabel="Enviado"
+          showImagePreview
+          selectedFile={uploadFiles[field]}
+          onFileChange={(file) => updateUploadFile(field, file)}
+          onFileRemove={() => updateUploadFile(field, null)}
+        />
+      </article>
+    );
+  }
+
+  const isStep2Valid = Boolean(
+    uploadFiles.enrollmentForm ||
+      uploadFiles.identityDocument ||
+      uploadFiles.residenceProof ||
+      uploadFiles.photo
+  );
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-student-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle={currentStep === 1 ? "Prepare os documentos para melhor leitura" : "Envie os documentos do aluno"}
+      overlayClassName="scanned-student-modal-overlay"
+      className="scanned-student-modal"
+      headerClassName="scanned-student-modal__header"
+      copyClassName="scanned-student-modal__copy"
+      closeButtonClassName="scanned-student-modal__close"
+      bodyClassName="scanned-student-modal__body"
+      footerClassName="scanned-student-modal__footer"
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="scanned-student-modal__cancel"
+            onClick={() => {
+              if (currentStep === 1) {
+                onClose();
+                return;
+              }
+
+              setCurrentStep(1);
+            }}
+          >
+            {currentStep === 1 ? "Cancelar" : "Voltar"}
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="scanned-student-modal__continue"
+            disabled={currentStep === 2 && !isStep2Valid}
+            onClick={() => {
+              if (currentStep === 1) {
+                setCurrentStep(2);
+                return;
+              }
+
+              onOpenProcessing(uploadFiles);
+            }}
+          >
+            Continuar
+          </Button>
+        </>
+      }
+    >
+      <div className="scanned-student-modal__stepper">
+        <Stepper
+          steps={scannedRegistrationSteps}
+          currentStep={currentStep}
+          ariaLabel="Etapas do cadastro via escaneamento"
+          className="scanned-student-modal__stepper-content"
+        />
+      </div>
+
+      <div ref={contentRef} className="scanned-student-modal__content">
+        {currentStep === 1 ? (
+          <>
+            <section className="scanned-student-modal__intro">
+              <span className="scanned-student-modal__intro-icon" aria-hidden="true">
+                <Upload />
+              </span>
+              <h3>Prepare os Documentos</h3>
+              <p>Siga estas orientações para obter os melhores resultados</p>
+            </section>
+
+            <section className="scanned-student-modal__tips-grid">
+              <article className="scanned-student-modal__tip-card">
+                <h4>Faça</h4>
+                <ul>
+                  <li>
+                    <CheckCircle2 aria-hidden="true" />
+                    <span>Use boa iluminação</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 aria-hidden="true" />
+                    <span>Mantenha o documento inteiro visível</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 aria-hidden="true" />
+                    <span>Coloque sobre fundo neutro</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 aria-hidden="true" />
+                    <span>Tire fotos nítidas e focadas</span>
+                  </li>
+                </ul>
+              </article>
+
+              <article className="scanned-student-modal__tip-card">
+                <h4>Evite</h4>
+                <ul>
+                  <li>
+                    <AlertCircle aria-hidden="true" />
+                    <span>Sombras sobre o documento</span>
+                  </li>
+                  <li>
+                    <AlertCircle aria-hidden="true" />
+                    <span>Fotos borradas ou tremidas</span>
+                  </li>
+                  <li>
+                    <AlertCircle aria-hidden="true" />
+                    <span>Reflexos de luz ou flash</span>
+                  </li>
+                  <li>
+                    <AlertCircle aria-hidden="true" />
+                    <span>Partes cortadas do documento</span>
+                  </li>
+                </ul>
+              </article>
+            </section>
+
+            <section className="scanned-student-modal__documents">
+              <h4>Documentos Aceitos</h4>
+              <div className="scanned-student-modal__documents-grid">
+                <article className="scanned-student-modal__document-card">
+                  <span className="scanned-student-modal__document-icon" aria-hidden="true">
+                    <FileText />
+                  </span>
+                  <div>
+                    <strong>Documento de Identidade</strong>
+                    <span>RG ou CNH</span>
+                  </div>
+                </article>
+
+                <article className="scanned-student-modal__document-card">
+                  <span className="scanned-student-modal__document-icon" aria-hidden="true">
+                    <Home />
+                  </span>
+                  <div>
+                    <strong>Comprovante de Residência</strong>
+                    <span>Conta de luz, água ou telefone</span>
+                  </div>
+                </article>
+
+                <article className="scanned-student-modal__document-card">
+                  <span className="scanned-student-modal__document-icon" aria-hidden="true">
+                    <ClipboardCheck />
+                  </span>
+                  <div>
+                    <strong>Formulário de Matrícula</strong>
+                    <span>Formulário preenchido</span>
+                  </div>
+                </article>
+
+                <article className="scanned-student-modal__document-card">
+                  <span className="scanned-student-modal__document-icon" aria-hidden="true">
+                    <FileImage />
+                  </span>
+                  <div>
+                    <strong>Foto 3x4</strong>
+                    <span>Foto do aluno</span>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </>
+        ) : (
+          <>
+            <section className="scanned-student-modal__intro scanned-student-modal__intro--upload">
+              <h3>Envie os Documentos</h3>
+              <p>Você pode enviar um ou mais documentos. O sistema irá extrair os dados automaticamente.</p>
+            </section>
+
+            <section className="scanned-student-modal__upload-grid">
+              <UploadCard
+                field="enrollmentForm"
+                title="Formulário de Matrícula"
+                description="Formulário preenchido"
+                icon={<ClipboardCheck />}
+              />
+              <UploadCard
+                field="identityDocument"
+                title="Documento de Identidade"
+                description="RG ou CNH"
+                icon={<FileText />}
+              />
+              <UploadCard
+                field="residenceProof"
+                title="Comprovante de Residência"
+                description="Conta de luz, água ou telefone"
+                icon={<Home />}
+              />
+              <UploadCard
+                field="photo"
+                title="Foto 3x4"
+                description="Foto do aluno"
+                icon={<FileImage />}
+              />
+            </section>
+          </>
+        )}
+      </div>
+    </ModalContainer>
+  );
+}
+
+function ScannedDocumentsProcessingModal({
+  isOpen,
+  onClose,
+  onComplete
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onComplete: () => void;
+}) {
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      onComplete();
+    }, 2200);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isOpen, onComplete]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const processedDocuments = [
+    "Formulário de Matrícula",
+    "Documento de Identidade",
+    "Comprovante de Residência",
+    "Foto 3x4"
+  ];
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-processing-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle="Processando documentos..."
+      overlayClassName="scanned-processing-modal-overlay"
+      className="scanned-processing-modal"
+      headerClassName="scanned-processing-modal__header"
+      copyClassName="scanned-processing-modal__copy"
+      closeButtonClassName="scanned-processing-modal__close"
+      bodyClassName="scanned-processing-modal__body"
+    >
+      <section className="scanned-processing-modal__content">
+        <span className="scanned-processing-modal__spinner-shell" aria-hidden="true">
+          <LoaderCircle className="scanned-processing-modal__spinner" />
+        </span>
+
+        <h3>Analisando Documentos</h3>
+        <p>Estamos processando as imagens e extraindo as informações. Isso pode levar alguns segundos.</p>
+
+        <div className="scanned-processing-modal__list">
+          {processedDocuments.map((document) => (
+            <article key={document} className="scanned-processing-modal__item">
+              <div className="scanned-processing-modal__item-info">
+                <CheckCircle2 aria-hidden="true" />
+                <span>{document}</span>
+              </div>
+              <span className="scanned-processing-modal__item-status">Lido com sucesso</span>
+            </article>
+          ))}
+        </div>
+      </section>
+    </ModalContainer>
+  );
+}
+
+function ScannedExtractedDataReviewModal({
+  isOpen,
+  onClose,
+  onContinue,
+  onBack,
+  uploadedFiles
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onContinue: () => void;
+  onBack: () => void;
+  uploadedFiles: ScannedUploadFiles;
+}) {
+  const [selectedDocumentId, setSelectedDocumentId] = useState<ScannedReviewDocumentId>("photo");
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [reviewFormValues, setReviewFormValues] = useState({
+    fullName: "Gabriel Henrique Martins",
+    rg: "52.781.944-8",
+    cpf: "483.927.618-41",
+    maritalStatus: "solteiro",
+    birthDate: "2010-08-14",
+    sex: "masculino",
+    nationality: "Brasileira",
+    phone: "(11) 94728-3184",
+    email: "gabriel.martins@gmail.com",
+    street: "Rua das Acácias",
+    number: "184",
+    zipCode: "09370-210",
+    neighborhood: "Jardim Primavera",
+    city: "maua",
+    state: "SP",
+    fatherName: "Ricardo Henrique Martins",
+    motherName: "Mariana Alves Martins"
+  });
+
+  const documents: Array<{ id: ScannedReviewDocumentId; title: string; fallbackFileName: string; icon: ReactNode }> = [
+    { id: "enrollmentForm", title: "Formulário de Matrícula", fallbackFileName: "Sem arquivo anexado", icon: <ClipboardCheck /> },
+    { id: "identityDocument", title: "Documento de Identidade", fallbackFileName: "Sem arquivo anexado", icon: <FileText /> },
+    { id: "residenceProof", title: "Comprovante de Residência", fallbackFileName: "Sem arquivo anexado", icon: <Home /> },
+    { id: "photo", title: "Foto 3x4", fallbackFileName: "Sem arquivo anexado", icon: <FileImage /> }
+  ];
+  const attachedDocuments = useMemo(
+    () => documents.filter((document) => Boolean(uploadedFiles[document.id])),
+    [uploadedFiles]
+  );
+
+  const selectPlaceholder = { value: "", label: "Selecione" };
+  const maritalStatusOptions = [
+    selectPlaceholder,
+    { value: "solteiro", label: "Solteiro(a)" },
+    { value: "casado", label: "Casado(a)" },
+    { value: "divorciado", label: "Divorciado(a)" },
+    { value: "viuvo", label: "Viúvo(a)" }
+  ];
+  const sexOptions = [selectPlaceholder, { value: "feminino", label: "Feminino" }, { value: "masculino", label: "Masculino" }];
+  const cityOptions = [
+    selectPlaceholder,
+    { value: "sao-paulo", label: "São Paulo" },
+    { value: "maua", label: "Mauá" },
+    { value: "campinas", label: "Campinas" },
+    { value: "santos", label: "Santos" }
+  ];
+  const stateOptions = [
+    { value: "", label: "Selecione" },
+    { value: "SP", label: "SP" },
+    { value: "RJ", label: "RJ" },
+    { value: "MG", label: "MG" },
+    { value: "BA", label: "BA" }
+  ];
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (attachedDocuments.length === 0) {
+      return;
+    }
+
+    const hasSelectedAttachedDocument = attachedDocuments.some((document) => document.id === selectedDocumentId);
+    if (!hasSelectedAttachedDocument) {
+      setSelectedDocumentId(attachedDocuments[0].id);
+    }
+  }, [attachedDocuments, isOpen, selectedDocumentId]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const selectedFile = uploadedFiles[selectedDocumentId];
+    if (!selectedFile || !selectedFile.type.startsWith("image/")) {
+      setPreviewImageUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreviewImageUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [isOpen, selectedDocumentId, uploadedFiles]);
+
+  function updateField(field: keyof typeof reviewFormValues, value: string) {
+    setReviewFormValues((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  function updateMaskedField(field: keyof typeof reviewFormValues, value: string) {
+    if (field === "rg") {
+      updateField(field, applyRgMask(value));
+      return;
+    }
+
+    if (field === "cpf") {
+      updateField(field, applyCpfMask(value));
+      return;
+    }
+
+    if (field === "phone") {
+      updateField(field, applyPhoneMask(value));
+      return;
+    }
+
+    if (field === "zipCode") {
+      updateField(field, applyCepMask(value));
+      return;
+    }
+
+    updateField(field, value);
+  }
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-review-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle="Revise e confirme os dados extraídos"
+      overlayClassName="scanned-review-modal-overlay"
+      className="scanned-review-modal"
+      headerClassName="scanned-review-modal__header"
+      copyClassName="scanned-review-modal__copy"
+      closeButtonClassName="scanned-review-modal__close"
+      bodyClassName="scanned-review-modal__body"
+      footerClassName="scanned-review-modal__footer"
+      footer={
+        <>
+          <Button type="button" variant="ghost" size="sm" className="scanned-review-modal__back" onClick={onBack}>
+            Voltar
+          </Button>
+          <Button type="button" variant="primary" size="sm" className="scanned-review-modal__continue" onClick={onContinue}>
+            Continuar
+          </Button>
+        </>
+      }
+    >
+      <div className="scanned-review-modal__stepper">
+        <Stepper
+          steps={scannedRegistrationSteps}
+          currentStep={3}
+          ariaLabel="Etapas do cadastro via escaneamento"
+          className="scanned-student-modal__stepper-content"
+        />
+      </div>
+
+      <div className="scanned-review-modal__content">
+        <aside className="scanned-review-modal__sidebar">
+          <h4>Documentos</h4>
+          <div className="scanned-review-modal__document-list">
+            {attachedDocuments.length > 0 ? (
+              attachedDocuments.map((document) => (
+                <button
+                  key={document.id}
+                  type="button"
+                  className={`scanned-review-modal__document-item ${selectedDocumentId === document.id ? "is-active" : ""}`}
+                  onClick={() => setSelectedDocumentId(document.id)}
+                >
+                  <span className="scanned-review-modal__document-item-icon" aria-hidden="true">
+                    {document.icon}
+                  </span>
+                  <span className="scanned-review-modal__document-item-copy">
+                    <strong>{document.title}</strong>
+                    <small>{uploadedFiles[document.id]?.name ?? document.fallbackFileName}</small>
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p className="scanned-review-modal__empty-list">Nenhum documento anexado</p>
+            )}
+          </div>
+
+          <h4>Visualização</h4>
+          <div className="scanned-review-modal__preview">
+            {previewImageUrl ? (
+              <img src={previewImageUrl} alt="Prévia do documento selecionado" />
+            ) : (
+              <div className="scanned-review-modal__preview-empty">
+                <FileText aria-hidden="true" />
+                <p>Sem visualização disponível para este arquivo</p>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        <section className="scanned-review-modal__panel">
+          <div className="scanned-review-modal__panel-heading">
+            <h3>Revise os Dados Extraídos</h3>
+            <p>Confirme se os dados estão corretos. Você pode editar qualquer informação.</p>
+          </div>
+
+          <div className="scanned-review-modal__section">
+            <h4>Dados Pessoais</h4>
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--single">
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Nome completo</span>
+                <Input value={reviewFormValues.fullName} showLabel={false} onChange={(event) => updateField("fullName", event.target.value)} />
+                <ConfidenceBadge level="high" source="de Documento de Identidade" />
+              </label>
+            </div>
+
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>RG</span>
+                <Input value={reviewFormValues.rg} showLabel={false} onChange={(event) => updateMaskedField("rg", event.target.value)} />
+                <ConfidenceBadge level="high" source="de Documento de Identidade" />
+              </label>
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>CPF</span>
+                <Input value={reviewFormValues.cpf} showLabel={false} onChange={(event) => updateMaskedField("cpf", event.target.value)} />
+                <ConfidenceBadge level="high" source="de Documento de Identidade" />
+              </label>
+            </div>
+
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Estado civil</span>
+                <SelectField
+                  variant="form"
+                  ariaLabel="Estado civil"
+                  value={reviewFormValues.maritalStatus}
+                  options={maritalStatusOptions}
+                  onChange={(event) => updateField("maritalStatus", event.target.value)}
+                />
+                <ConfidenceBadge level="medium" source="de Formulário de Matrícula" />
+              </label>
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Data de nascimento</span>
+                <DatePicker
+                  value={reviewFormValues.birthDate}
+                  onChange={(event) => updateField("birthDate", event.target.value)}
+                  aria-label="Data de nascimento"
+                />
+                <ConfidenceBadge level="high" source="de Documento de Identidade" />
+              </label>
+            </div>
+
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Sexo</span>
+                <SelectField
+                  variant="form"
+                  ariaLabel="Sexo"
+                  value={reviewFormValues.sex}
+                  options={sexOptions}
+                  onChange={(event) => updateField("sex", event.target.value)}
+                />
+                <ConfidenceBadge level="high" source="de Formulário de Matrícula" />
+              </label>
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Nacionalidade</span>
+                <Input value={reviewFormValues.nationality} showLabel={false} onChange={(event) => updateField("nationality", event.target.value)} />
+                <ConfidenceBadge level="high" source="de Formulário de Matrícula" />
+              </label>
+            </div>
+          </div>
+
+          <div className="scanned-review-modal__section">
+            <h4>Contato</h4>
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Telefone</span>
+                <Input value={reviewFormValues.phone} showLabel={false} onChange={(event) => updateMaskedField("phone", event.target.value)} />
+                <ConfidenceBadge level="medium" source="de Formulário de Matrícula" />
+              </label>
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>E-mail</span>
+                <Input value={reviewFormValues.email} showLabel={false} onChange={(event) => updateField("email", event.target.value)} />
+                <ConfidenceBadge level="medium" source="de Formulário de Matrícula" />
+              </label>
+            </div>
+          </div>
+
+          <div className="scanned-review-modal__section">
+            <h4>Endereço</h4>
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--three-compact">
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Rua</span>
+                <Input value={reviewFormValues.street} showLabel={false} onChange={(event) => updateField("street", event.target.value)} />
+                <ConfidenceBadge level="high" />
+              </label>
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Número</span>
+                <Input value={reviewFormValues.number} showLabel={false} onChange={(event) => updateField("number", event.target.value)} />
+              </label>
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>CEP</span>
+                <Input
+                  value={reviewFormValues.zipCode}
+                  showLabel={false}
+                  onChange={(event) => updateMaskedField("zipCode", event.target.value)}
+                />
+                <ConfidenceBadge level="low" />
+              </label>
+            </div>
+
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--three">
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Bairro</span>
+                <Input value={reviewFormValues.neighborhood} showLabel={false} onChange={(event) => updateField("neighborhood", event.target.value)} />
+                <ConfidenceBadge level="medium" />
+              </label>
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Cidade</span>
+                <SelectField
+                  variant="form"
+                  ariaLabel="Cidade"
+                  value={reviewFormValues.city}
+                  options={cityOptions}
+                  onChange={(event) => updateField("city", event.target.value)}
+                />
+                <ConfidenceBadge level="high" />
+              </label>
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Estado</span>
+                <SelectField
+                  variant="form"
+                  ariaLabel="UF"
+                  value={reviewFormValues.state}
+                  options={stateOptions}
+                  onChange={(event) => updateField("state", event.target.value)}
+                />
+                <ConfidenceBadge level="high" />
+              </label>
+            </div>
+          </div>
+
+          <div className="scanned-review-modal__section">
+            <h4>Informações Familiares</h4>
+            <div className="scanned-review-modal__grid scanned-review-modal__grid--two">
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Nome do pai</span>
+                <Input value={reviewFormValues.fatherName} showLabel={false} onChange={(event) => updateField("fatherName", event.target.value)} />
+                <ConfidenceBadge level="medium" />
+              </label>
+              <label className="scanned-review-modal__field manual-student-modal__field">
+                <span>Nome da mãe</span>
+                <Input value={reviewFormValues.motherName} showLabel={false} onChange={(event) => updateField("motherName", event.target.value)} />
+                <ConfidenceBadge level="high" />
+              </label>
+            </div>
+          </div>
+
+          <div className="scanned-review-modal__warning">
+            <AlertCircle aria-hidden="true" />
+            <div>
+              <strong>Alguns campos têm confiança baixa</strong>
+              <p>Revise com atenção os campos destacados em amarelo. Eles podem conter erros de leitura.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </ModalContainer>
+  );
+}
+
+function ScannedEnrollmentModal({
+  isOpen,
+  onClose,
+  onBack,
+  onContinue,
+  values,
+  onChange
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onBack: () => void;
+  onContinue: () => void;
+  values: ScannedEnrollmentForm;
+  onChange: (nextValues: ScannedEnrollmentForm) => void;
+}) {
+  const moduleOptions = [
+    { value: "", label: "Selecione" },
+    { value: "Módulo I", label: "Módulo I" },
+    { value: "Módulo II", label: "Módulo II" },
+    { value: "Módulo III", label: "Módulo III" }
+  ];
+
+  const classOptions = [
+    { value: "", label: "Selecione" },
+    ...getClassOptions((values.module || "Todos") as ModuleFilter)
+      .filter((option) => option !== "Todas")
+      .map((option) => ({ value: option, label: option }))
+  ];
+
+  const isContinueDisabled = values.module.trim() === "" || values.className.trim() === "";
+
+  function updateField(field: keyof ScannedEnrollmentForm, value: string) {
+    if (field === "module") {
+      onChange({
+        module: value,
+        className: ""
+      });
+      return;
+    }
+
+    onChange({
+      ...values,
+      [field]: value
+    });
+  }
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-enrollment-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle="Selecione o módulo e a turma"
+      overlayClassName="scanned-enrollment-modal-overlay"
+      className="scanned-enrollment-modal"
+      headerClassName="scanned-enrollment-modal__header"
+      copyClassName="scanned-enrollment-modal__copy"
+      closeButtonClassName="scanned-enrollment-modal__close"
+      bodyClassName="scanned-enrollment-modal__body"
+      footerClassName="scanned-enrollment-modal__footer"
+      footer={
+        <>
+          <Button type="button" variant="ghost" size="sm" className="scanned-enrollment-modal__back" onClick={onBack}>
+            Voltar
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="scanned-enrollment-modal__continue"
+            disabled={isContinueDisabled}
+            onClick={onContinue}
+          >
+            Continuar
+          </Button>
+        </>
+      }
+    >
+      <div className="scanned-enrollment-modal__stepper">
+        <Stepper
+          steps={scannedRegistrationSteps}
+          currentStep={4}
+          ariaLabel="Etapas do cadastro via escaneamento"
+          className="scanned-student-modal__stepper-content"
+        />
+      </div>
+
+      <section className="scanned-enrollment-modal__content">
+        <h3>
+          Matrícula <strong>*</strong>
+        </h3>
+        <div className="scanned-enrollment-modal__fields">
+          <div className="scanned-enrollment-modal__field">
+            <label>
+              Módulo <strong>*</strong>
+            </label>
+            <SelectField
+              variant="form"
+              ariaLabel="Módulo"
+              value={values.module}
+              options={moduleOptions}
+              onChange={(event) => updateField("module", event.target.value)}
+            />
+          </div>
+          <div className="scanned-enrollment-modal__field">
+            <label>
+              Turma <strong>*</strong>
+            </label>
+            <SelectField
+              variant="form"
+              ariaLabel="Turma"
+              value={values.className}
+              options={classOptions}
+              onChange={(event) => updateField("className", event.target.value)}
+            />
+          </div>
+        </div>
+      </section>
+    </ModalContainer>
+  );
+}
+
+function ScannedConfirmModal({
+  isOpen,
+  onClose,
+  onBack,
+  onSave,
+  uploadedFiles,
+  enrollment
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onBack: () => void;
+  onSave: () => void;
+  uploadedFiles: ScannedUploadFiles;
+  enrollment: ScannedEnrollmentForm;
+}) {
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+
+  const extractedFields = [
+    "Nome completo",
+    "RG",
+    "Data de nascimento",
+    "Sexo",
+    "Estado civil",
+    "Nacionalidade",
+    "Telefone",
+    "E-mail",
+    "Rua",
+    "Número",
+    "Bairro",
+    "Cidade",
+    "Estado",
+    "CEP",
+    "Nome do pai",
+    "Nome da mãe"
+  ];
+
+  const attachedDocuments = [
+    { id: "enrollmentForm", label: "Formulário de Matrícula" },
+    { id: "identityDocument", label: "Documento de Identidade" },
+    { id: "residenceProof", label: "Comprovante de Residência" },
+    { id: "photo", label: "Foto 3x4" }
+  ].filter((document) => uploadedFiles[document.id as keyof ScannedUploadFiles]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const selectedFile = uploadedFiles.photo;
+    if (!selectedFile || !selectedFile.type.startsWith("image/")) {
+      setPhotoPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPhotoPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [isOpen, uploadedFiles.photo]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="scanned-confirm-modal-title"
+      title="Cadastro via Escaneamento"
+      subtitle="Confirme os dados antes de salvar"
+      overlayClassName="scanned-confirm-modal-overlay"
+      className="scanned-confirm-modal"
+      headerClassName="scanned-confirm-modal__header"
+      copyClassName="scanned-confirm-modal__copy"
+      closeButtonClassName="scanned-confirm-modal__close"
+      bodyClassName="scanned-confirm-modal__body"
+      footerClassName="scanned-confirm-modal__footer"
+      footer={
+        <>
+          <Button type="button" variant="ghost" size="sm" className="scanned-confirm-modal__back" onClick={onBack}>
+            Voltar
+          </Button>
+          <Button type="button" variant="primary" size="sm" className="scanned-confirm-modal__save" onClick={onSave}>
+            Salvar Aluno
+          </Button>
+        </>
+      }
+    >
+      <div className="scanned-confirm-modal__stepper">
+        <Stepper
+          steps={scannedRegistrationSteps}
+          currentStep={5}
+          ariaLabel="Etapas do cadastro via escaneamento"
+          className="scanned-student-modal__stepper-content"
+        />
+      </div>
+
+      <section className="scanned-confirm-modal__content">
+        <div className="scanned-confirm-modal__heading">
+          <h3>Revisão Final</h3>
+          <p>Confirme todas as informações antes de salvar o cadastro</p>
+        </div>
+
+        <article className="scanned-confirm-modal__summary-card">
+          <div className="scanned-confirm-modal__avatar" aria-hidden="true">
+            {photoPreviewUrl ? <img src={photoPreviewUrl} alt="" /> : <FileImage />}
+          </div>
+          <div className="scanned-confirm-modal__student-info">
+                <h4>Gabriel Henrique Martins</h4>
+                <div className="scanned-confirm-modal__info-grid">
+                  <p>
+                    RG: <strong>52.781.944-8</strong>
+                  </p>
+                  <p>
+                    Telefone: <strong>(11) 94728-3184</strong>
+                  </p>
+                  <p>
+                    Data de nascimento: <strong>2010-08-14</strong>
+                  </p>
+                  <p>
+                    E-mail: <strong>gabriel.martins@gmail.com</strong>
+                  </p>
+                </div>
+            <div className="scanned-confirm-modal__tags">
+              <Pill tone="violet" label={enrollment.module || "Módulo"} />
+              <Pill tone="blue" label={enrollment.className || "Turma"} />
+            </div>
+          </div>
+        </article>
+
+        <div className="scanned-confirm-modal__lists">
+          <article className="scanned-confirm-modal__list-card">
+            <h4>Dados Extraídos</h4>
+            <ul>
+              {extractedFields.map((field) => (
+                <li key={field}>
+                  <CheckCircle2 aria-hidden="true" />
+                  <span>{field}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className="scanned-confirm-modal__list-card">
+            <h4>Documentos Anexados</h4>
+            <ul>
+              {attachedDocuments.map((document) => (
+                <li key={document.id}>
+                  <CheckCircle2 aria-hidden="true" />
+                  <span>{document.label}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        </div>
+
+        <div className="scanned-confirm-modal__success">
+          <CheckCircle2 aria-hidden="true" />
+          <div>
+            <strong>Tudo pronto para salvar!</strong>
+            <p>Todos os dados foram revisados e estão prontos para serem salvos no sistema.</p>
+          </div>
+        </div>
+      </section>
+    </ModalContainer>
+  );
+}
+
+function EmptyAttachmentState() {
+  return (
+    <div className="flex min-h-[132px] flex-col items-center justify-center gap-3">
+      <AttachmentIcon name="calendar" className="attachment-symbol attachment-symbol--empty-state" />
+      <p className="m-0 text-center text-[var(--text-body-large)] leading-[1.45] text-[#667085]">Nenhuma justificativa registrada</p>
+    </div>
+  );
+}
+
+function JustificationRecordItem({
+  record,
+  onEdit
+}: {
+  record: JustificationRecord;
+  onEdit: (record: JustificationRecord) => void;
+}) {
+  return (
+    <article className="flex flex-col gap-4 rounded-xl border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="inline-flex items-center gap-2 text-[var(--color-content-primary)]">
+          <span className="inline-flex h-5 w-5 items-center justify-center text-[var(--color-content-tertiary)]" aria-hidden="true">
+            <AttachmentIcon name="calendar" className="attachment-symbol attachment-symbol--action" />
+          </span>
+          <strong className="text-[var(--text-body-large)] font-semibold leading-[1.35]">{record.classDate}</strong>
+        </div>
+        <div className="inline-flex items-center gap-2">
+          <JustificationStatusBadge status={record.status} />
+          <IconButton
+            className="h-8 w-8 min-h-8 rounded-md text-[var(--color-content-tertiary)]"
+            icon={<Trash2 aria-hidden="true" />}
+            label="Excluir justificativa"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium leading-[1.33] text-[var(--color-content-tertiary)]">Motivo</span>
+        <p className="m-0 text-base leading-[1.43] text-[var(--color-content-primary)]">{record.type}</p>
+        {record.note ? (
+          <>
+            <span className="mt-1 text-xs font-medium leading-[1.33] text-[var(--color-content-tertiary)]">Observação</span>
+            <p className="m-0 text-sm leading-[1.43] text-[var(--color-content-tertiary)]">{record.note}</p>
+          </>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button
+          className="min-h-[34px] flex-1 rounded-[10px] px-3"
+          icon={<PenLine aria-hidden="true" />}
+          size="sm"
+          type="button"
+          variant="secondary"
+          onClick={() => onEdit(record)}
+        >
+          Editar
+        </Button>
+        <Button
+          className="min-h-[34px] flex-1 rounded-[10px] border border-[#bfdbfe] bg-[#eff6ff] px-3 text-[#175cd3]"
+          icon={<ExternalLink aria-hidden="true" />}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          Ver chamada
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+function StudentJustificationModal({
+  isOpen,
+  studentName,
+  form,
+  selectedFile,
+  persistedFile,
+  fileError,
+  mode,
+  onClose,
+  onSubmit,
+  onFieldChange,
+  onFileChange,
+  onFileRemove
+}: {
+  isOpen: boolean;
+  studentName: string;
+  form: {
+    classDate: string;
+    type: JustificationType;
+    status: JustificationStatus;
+    note: string;
+  };
+  selectedFile: File | null;
+  persistedFile: {
+    name: string;
+    sizeLabel?: string;
+  } | null;
+  fileError: string;
+  mode: "create" | "edit";
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onFieldChange: (field: "classDate" | "type" | "status" | "note", value: string) => void;
+  onFileChange: (file: File | null) => void;
+  onFileRemove: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="justification-modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        className="justification-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="justification-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="justification-modal__header">
+          <div className="justification-modal__copy">
+            <h2 id="justification-modal-title">{mode === "edit" ? "Editar justificativa" : "Adicionar justificativa"}</h2>
+            <p>
+              {mode === "edit"
+                ? `Atualize os dados da justificativa de falta de ${studentName}.`
+                : `Registre uma justificativa de falta para o aluno ${studentName}.`}
+            </p>
+          </div>
+
+          <button className="justification-modal__close" type="button" aria-label="Fechar modal" onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <form className="justification-modal__form" onSubmit={onSubmit}>
+          <div className="justification-modal__fields">
+            <DatePicker
+              label="Data da aula *"
+              value={form.classDate}
+              onChange={(event) => onFieldChange("classDate", event.target.value)}
+              required
+              wrapperClassName="justification-modal__field"
+            />
+
+            <SelectField
+              label="Tipo de justificativa"
+              variant="form"
+              ariaLabel="Tipo de justificativa"
+              value={form.type}
+              options={justificationTypeOptions.map((option) => ({ value: option, label: option }))}
+              onChange={(event) => onFieldChange("type", event.target.value)}
+              fieldClassName="justification-modal__field"
+              required
+            />
+
+            <SelectField
+              label="Status"
+              variant="form"
+              ariaLabel="Status"
+              value={form.status}
+              options={justificationStatusOptions.map((option) => ({ value: option, label: option }))}
+              onChange={(event) => onFieldChange("status", event.target.value)}
+              fieldClassName="justification-modal__field"
+              required
+            />
+
+            <TextareaField
+              label="Observação"
+              rows={4}
+              placeholder="Adicione observações sobre a justificativa..."
+              value={form.note}
+              onChange={(event) => onFieldChange("note", event.target.value)}
+              wrapperClassName="justification-modal__field"
+            />
+
+            <DocumentUploadField
+              label="Documento (opcional)"
+              selectedFile={selectedFile}
+              persistedFile={persistedFile}
+              errorMessage={fileError}
+              onFileChange={onFileChange}
+              onFileRemove={onFileRemove}
+            />
+          </div>
+
+          <div className="justification-modal__footer">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary">
+              {mode === "edit" ? "Salvar alterações" : "Salvar justificativa"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function DrawerTabContent({
+  student,
+  activeTab,
+  onOpenFullHistory,
+  onOpenDocumentUploadModal,
+  personalAttachments,
+  onViewPersonalAttachment,
+  onDownloadPersonalAttachment,
+  onRequestDeletePersonalAttachment,
+  onOpenJustificationModal,
+  onEditJustification,
+  justificationRecords
+}: {
+  student: StudentRecord;
+  activeTab: DrawerTab;
+  onOpenFullHistory: () => void;
+  onOpenDocumentUploadModal: () => void;
+  personalAttachments: PersonalAttachmentRecord[];
+  onViewPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onDownloadPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onRequestDeletePersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onOpenJustificationModal: () => void;
+  onEditJustification: (record: JustificationRecord) => void;
+  justificationRecords: JustificationRecord[];
+}) {
+  if (activeTab === "contact") {
+    return (
+      <Card className="student-card gap-6">
+        <ContactLinkRow label="Telefone" value={student.details.contact.phone} href={`tel:${student.details.contact.phone}`} />
+        <ContactLinkRow label="E-mail" value={student.details.contact.email} href={`mailto:${student.details.contact.email}`} />
+        <ContactLinkRow
+          label="Email Escolar"
+          value={student.details.contact.schoolEmail}
+          href={`mailto:${student.details.contact.schoolEmail}`}
+        />
+      </Card>
+    );
+  }
+
+  if (activeTab === "address") {
+    return <AddressContent student={student} />;
+  }
+
+  if (activeTab === "attachments") {
+    return (
+      <>
+        <CollapsibleCard
+          className="student-card student-card--attachments"
+          title="Documentos Pessoais"
+          icon={<AttachmentIcon name="file" className="attachment-symbol attachment-symbol--section" />}
+          badge={personalAttachments.length}
+        >
+      <div className="flex flex-col gap-3 p-0">
+        <SecondaryButton
+          className="min-h-[42px] rounded-[10px] border border-[#d0d5dd] bg-[var(--color-surface-card)] text-sm font-medium text-[#344054] shadow-none"
+          icon={<AttachmentIcon name="upload" className="attachment-symbol attachment-symbol--action" />}
+          onClick={onOpenDocumentUploadModal}
+        >
+              Adicionar documento
+            </SecondaryButton>
+            {personalAttachments.length > 0 ? (
+          <div className="flex flex-col gap-3">
+                {personalAttachments.map((record) => (
+                  <AttachmentFileItem
+                    key={record.id}
+                    record={record}
+                    onView={onViewPersonalAttachment}
+                    onDownload={onDownloadPersonalAttachment}
+                    onRequestDelete={onRequestDeletePersonalAttachment}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyPersonalAttachmentState />
+            )}
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard
+          className="student-card student-card--attachments"
+          title="Justificativas de Faltas"
+          icon={<AttachmentIcon name="calendar" className="attachment-symbol attachment-symbol--section" />}
+        >
+      <div className="flex flex-col gap-3 p-0">
+        <SecondaryButton
+          className="min-h-[42px] rounded-[10px] border border-[#d0d5dd] bg-[var(--color-surface-card)] text-sm font-medium text-[#344054] shadow-none"
+          icon={<AttachmentIcon name="plus" className="attachment-symbol attachment-symbol--action" />}
+          onClick={onOpenJustificationModal}
+        >
+              Adicionar justificativa
+            </SecondaryButton>
+            {justificationRecords.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {justificationRecords.map((record) => (
+                  <JustificationRecordItem key={record.id} record={record} onEdit={onEditJustification} />
+                ))}
+              </div>
+            ) : (
+              <EmptyAttachmentState />
+            )}
+          </div>
+        </CollapsibleCard>
+      </>
+    );
+  }
+
+  if (activeTab === "frequency") {
+    return <FrequencyTabContent student={student} onOpenFullHistory={onOpenFullHistory} />;
+  }
+
+  return (
+    <>
+      <Card className="student-card">
+        <div className="student-card__grid student-card__grid--personal">
+          <div className="student-field student-field--full">
+            <span className="student-field__label">Nome completo</span>
+            <strong className="student-field__value">{student.name}</strong>
+          </div>
+          <DrawerField label="RG" value={student.details.rg} />
+          <DrawerField label="Data de nascimento" value={student.details.birthDate} />
+          <DrawerField label="Sexo" value={student.details.sex} />
+          <DrawerField label="Estado civil" value={student.details.maritalStatus} />
+          <DrawerField label="Nacionalidade" value={student.details.nationality} />
+        </div>
+      </Card>
+
+      <Card className="student-card">
+        <h3 className="m-0 text-[var(--color-content-primary)] text-[var(--text-body-medium)] font-semibold leading-[1.4]">Histórico Recente</h3>
+        <div className="student-card__stack">
+          <DrawerField label="Nome do pai" value={student.details.fatherName} />
+          <DrawerField label="Nome da mãe" value={student.details.motherName} />
+        </div>
+      </Card>
+
+      <Card className="student-card">
+        <h3 className="m-0 text-[var(--color-content-primary)] text-[var(--text-body-medium)] font-semibold leading-[1.4]">Histórico Recente</h3>
+        <div className="student-card__stack">
+          <div className="student-field">
+            <span className="student-field__label">Módulo</span>
+            <Pill label={student.module} tone={student.moduleTone as PillTone} />
+          </div>
+          <div className="student-field">
+            <span className="student-field__label">Turma</span>
+            <Pill label={student.className} tone={student.classTone as PillTone} />
+          </div>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+function StudentDrawer({
+  student,
+  activeTab,
+  onTabChange,
+  onClose,
+  onOpenFullHistory,
+  onOpenDocumentUploadModal,
+  personalAttachments,
+  onViewPersonalAttachment,
+  onDownloadPersonalAttachment,
+  onRequestDeletePersonalAttachment,
+  onOpenJustificationModal,
+  onEditJustification,
+  justificationRecords
+}: {
+  student: StudentRecord;
+  activeTab: DrawerTab;
+  onTabChange: (tab: DrawerTab) => void;
+  onClose: () => void;
+  onOpenFullHistory: () => void;
+  onOpenDocumentUploadModal: () => void;
+  personalAttachments: PersonalAttachmentRecord[];
+  onViewPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onDownloadPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onRequestDeletePersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onOpenJustificationModal: () => void;
+  onEditJustification: (record: JustificationRecord) => void;
+  justificationRecords: JustificationRecord[];
+}) {
+  const initials =
+    student.initials ??
+    student.name
+      .split(" ")
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase();
+
+  return (
+    <div className="student-drawer-overlay" role="presentation" onClick={onClose}>
+      <aside
+        className="student-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="student-drawer-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="student-drawer__header">
+          <div className="student-drawer__summary">
+            {student.avatar ? (
+              <img className="student-drawer__avatar" src={student.avatar} alt="" aria-hidden="true" />
+            ) : (
+              <span className="student-drawer__avatar student-drawer__avatar--initials">{initials}</span>
+            )}
+
+            <div className="student-drawer__identity">
+              <h2 id="student-drawer-title">{student.name}</h2>
+              <StatusBadge status={student.status} />
+            </div>
+          </div>
+
+          <IconButton className="student-drawer__close" icon={<X aria-hidden="true" />} label="Fechar painel" onClick={onClose} />
+        </header>
+
+        <div className="student-drawer__actions">
+          <Button className="student-drawer__edit">Editar aluno</Button>
+
+          <IconButton
+            className="student-drawer__delete"
+            icon={<Trash2 aria-hidden="true" />}
+            label={`Excluir ${student.name}`}
+          />
+        </div>
+        <Tabs
+          className="student-drawer__tabs-shell"
+          value={activeTab}
+          onValueChange={(value) => onTabChange(value as DrawerTab)}
+        >
+          <TabsList className="student-drawer__tabs" variant="drawer" aria-label="Seções do aluno">
+            {drawerTabs.map((tab) => (
+              <TabsTrigger key={tab.id} className="student-drawer__tab" value={tab.id} variant="drawer">
+                {tab.label}
+                {tab.id === "attachments" ? (
+                  <span className="student-drawer__tab-badge">{student.details.attachmentsCount}</span>
+                ) : null}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <div className="student-drawer__content">
+            {drawerTabs.map((tab) => (
+              <TabsContent key={tab.id} value={tab.id}>
+                <DrawerTabContent
+                  student={student}
+                  activeTab={tab.id}
+                  onOpenFullHistory={onOpenFullHistory}
+                  onOpenDocumentUploadModal={onOpenDocumentUploadModal}
+                  personalAttachments={personalAttachments}
+                  onViewPersonalAttachment={onViewPersonalAttachment}
+                  onDownloadPersonalAttachment={onDownloadPersonalAttachment}
+                  onRequestDeletePersonalAttachment={onRequestDeletePersonalAttachment}
+                  onOpenJustificationModal={onOpenJustificationModal}
+                  onEditJustification={onEditJustification}
+                  justificationRecords={justificationRecords}
+                />
+              </TabsContent>
+            ))}
+          </div>
+        </Tabs>
+      </aside>
+    </div>
+  );
+}
+
+export function StudentsPage({ attendanceEntries = attendanceHistory }: { attendanceEntries?: AttendanceHistoryEntry[] }) {
+  const studentsPerPage = 10;
+  const [studentEntries, setStudentEntries] = useState(students);
+  const [query, setQuery] = useState("");
+  const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("Todos");
+  const [classFilter, setClassFilter] = useState<ClassFilter>("Todas");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
+  const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
+  const [historyStudent, setHistoryStudent] = useState<StudentRecord | null>(null);
+  const [activeTab, setActiveTab] = useState<DrawerTab>("personal");
+  const [studentSortKey, setStudentSortKey] = useState<StudentSortKey>("recent");
+  const [studentSortDirection, setStudentSortDirection] = useState<"asc" | "desc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
+  const [isDrawerClosing, setIsDrawerClosing] = useState(false);
+  const [isRegistrationTypeModalOpen, setIsRegistrationTypeModalOpen] = useState(false);
+  const [isManualStudentModalOpen, setIsManualStudentModalOpen] = useState(false);
+  const [isScannedStudentModalOpen, setIsScannedStudentModalOpen] = useState(false);
+  const [isScannedProcessingModalOpen, setIsScannedProcessingModalOpen] = useState(false);
+  const [isScannedReviewModalOpen, setIsScannedReviewModalOpen] = useState(false);
+  const [isScannedEnrollmentModalOpen, setIsScannedEnrollmentModalOpen] = useState(false);
+  const [isScannedConfirmModalOpen, setIsScannedConfirmModalOpen] = useState(false);
+  const [scannedUploadFiles, setScannedUploadFiles] = useState<ScannedUploadFiles>(emptyScannedUploadFiles);
+  const [scannedEnrollmentForm, setScannedEnrollmentForm] = useState<ScannedEnrollmentForm>(emptyScannedEnrollmentForm);
+  const [isDocumentUploadModalOpen, setIsDocumentUploadModalOpen] = useState(false);
+  const [documentUploadError, setDocumentUploadError] = useState("");
+  const [personalAttachmentsByStudent, setPersonalAttachmentsByStudent] = useState<Record<number, PersonalAttachmentRecord[]>>({});
+  const [attachmentPendingDelete, setAttachmentPendingDelete] = useState<PersonalAttachmentRecord | null>(null);
+  const [isJustificationModalOpen, setIsJustificationModalOpen] = useState(false);
+  const [justificationModalMode, setJustificationModalMode] = useState<"create" | "edit">("create");
+  const [editingJustificationId, setEditingJustificationId] = useState<string | null>(null);
+  const [selectedJustificationFile, setSelectedJustificationFile] = useState<File | null>(null);
+  const [persistedJustificationFile, setPersistedJustificationFile] = useState<{ name: string; sizeLabel?: string } | null>(null);
+  const [justificationFileError, setJustificationFileError] = useState("");
+  const [justificationRecordsByStudent, setJustificationRecordsByStudent] = useState<Record<number, JustificationRecord[]>>({});
+  const [justificationForm, setJustificationForm] = useState<{
+    classDate: string;
+    type: JustificationType;
+    status: JustificationStatus;
+    note: string;
+  }>({
+    classDate: "",
+    type: "Atestado médico",
+    status: "Pendente",
+    note: ""
+  });
+
+  const closeDrawer = () => {
+    setIsRegistrationTypeModalOpen(false);
+    setIsManualStudentModalOpen(false);
+    setIsScannedStudentModalOpen(false);
+    setIsScannedProcessingModalOpen(false);
+    setIsScannedReviewModalOpen(false);
+    setIsScannedEnrollmentModalOpen(false);
+    setIsScannedConfirmModalOpen(false);
+    setScannedUploadFiles(emptyScannedUploadFiles);
+    setScannedEnrollmentForm(emptyScannedEnrollmentForm);
+    closeAttachmentDeleteModal();
+    closeDocumentUploadModal();
+    closeJustificationModal();
+    setIsDrawerClosing(true);
+    window.setTimeout(() => {
+      setSelectedStudent(null);
+      setActiveTab("personal");
+      setIsDrawerClosing(false);
+    }, 220);
+  };
+
+  useEffect(() => {
+    if (!selectedStudent) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeDrawer();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedStudent]);
+
+  useEffect(() => {
+    const isAnyModalOpen =
+      isRegistrationTypeModalOpen ||
+      isManualStudentModalOpen ||
+      isScannedStudentModalOpen ||
+      isScannedProcessingModalOpen ||
+      isScannedReviewModalOpen ||
+      isScannedEnrollmentModalOpen ||
+      isScannedConfirmModalOpen ||
+      Boolean(attachmentPendingDelete) ||
+      isDocumentUploadModalOpen ||
+      isJustificationModalOpen;
+    if (!isAnyModalOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (isRegistrationTypeModalOpen) {
+          setIsRegistrationTypeModalOpen(false);
+          return;
+        }
+
+        if (isManualStudentModalOpen) {
+          setIsManualStudentModalOpen(false);
+          return;
+        }
+
+        if (isScannedStudentModalOpen) {
+          setIsScannedStudentModalOpen(false);
+          return;
+        }
+
+        if (isScannedProcessingModalOpen) {
+          setIsScannedProcessingModalOpen(false);
+          return;
+        }
+
+        if (isScannedReviewModalOpen) {
+          setIsScannedReviewModalOpen(false);
+          return;
+        }
+
+        if (isScannedEnrollmentModalOpen) {
+          setIsScannedEnrollmentModalOpen(false);
+          return;
+        }
+
+        if (isScannedConfirmModalOpen) {
+          setIsScannedConfirmModalOpen(false);
+          return;
+        }
+
+        if (attachmentPendingDelete) {
+          closeAttachmentDeleteModal();
+          return;
+        }
+
+        if (isDocumentUploadModalOpen) {
+          closeDocumentUploadModal();
+          return;
+        }
+
+        closeJustificationModal();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    attachmentPendingDelete,
+    isDocumentUploadModalOpen,
+    isJustificationModalOpen,
+    isManualStudentModalOpen,
+    isRegistrationTypeModalOpen,
+    isScannedStudentModalOpen,
+    isScannedProcessingModalOpen,
+    isScannedReviewModalOpen,
+    isScannedEnrollmentModalOpen,
+    isScannedConfirmModalOpen
+  ]);
+
+  const classOptions = useMemo(() => getClassOptions(moduleFilter), [moduleFilter]);
+  const selectedStudentAttachments = selectedStudent ? personalAttachmentsByStudent[selectedStudent.id] ?? [] : [];
+  const selectedStudentJustifications = selectedStudent ? justificationRecordsByStudent[selectedStudent.id] ?? [] : [];
+
+  function closeDocumentUploadModal() {
+    setIsDocumentUploadModalOpen(false);
+    setDocumentUploadError("");
+  }
+
+  function closeAttachmentDeleteModal() {
+    setAttachmentPendingDelete(null);
+  }
+
+  function handleDocumentFileSelected(file: File | null) {
+    if (!selectedStudent || !file) {
+      return;
+    }
+
+    const isValidType = personalDocumentAcceptedMimeTypes.includes(file.type) || hasSupportedPersonalDocumentExtension(file.name);
+    if (!isValidType) {
+      setDocumentUploadError("Envie um arquivo PDF, DOC, DOCX, JPG ou PNG.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setDocumentUploadError("O arquivo precisa ter no máximo 10MB.");
+      return;
+    }
+
+    const nextRecord: PersonalAttachmentRecord = {
+      id: `${selectedStudent.id}-${Date.now()}`,
+      file,
+      createdAtLabel: new Intl.DateTimeFormat("pt-BR").format(new Date())
+    };
+
+    setPersonalAttachmentsByStudent((current) => ({
+      ...current,
+      [selectedStudent.id]: [nextRecord, ...(current[selectedStudent.id] ?? [])]
+    }));
+    closeDocumentUploadModal();
+  }
+
+  function handleViewPersonalAttachment(record: PersonalAttachmentRecord) {
+    const fileUrl = URL.createObjectURL(record.file);
+    window.open(fileUrl, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+  }
+
+  function handleDownloadPersonalAttachment(record: PersonalAttachmentRecord) {
+    const fileUrl = URL.createObjectURL(record.file);
+    const anchor = document.createElement("a");
+    anchor.href = fileUrl;
+    anchor.download = record.file.name;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(fileUrl);
+  }
+
+  function handleRequestDeletePersonalAttachment(record: PersonalAttachmentRecord) {
+    setAttachmentPendingDelete(record);
+  }
+
+  function handleConfirmDeletePersonalAttachment() {
+    if (!selectedStudent || !attachmentPendingDelete) {
+      return;
+    }
+
+    setPersonalAttachmentsByStudent((current) => ({
+      ...current,
+      [selectedStudent.id]: (current[selectedStudent.id] ?? []).filter((record) => record.id !== attachmentPendingDelete.id)
+    }));
+    closeAttachmentDeleteModal();
+  }
+
+  function resetJustificationForm() {
+    setJustificationForm({
+      classDate: "",
+      type: "Atestado médico",
+      status: "Pendente",
+      note: ""
+    });
+    setJustificationModalMode("create");
+    setEditingJustificationId(null);
+    setSelectedJustificationFile(null);
+    setPersistedJustificationFile(null);
+    setJustificationFileError("");
+  }
+
+  function closeJustificationModal() {
+    setIsJustificationModalOpen(false);
+    resetJustificationForm();
+  }
+
+  function handleJustificationFieldChange(field: "classDate" | "type" | "status" | "note", value: string) {
+    setJustificationForm((current) => {
+      if (field === "type") {
+        return {
+          ...current,
+          type: value as JustificationType
+        };
+      }
+
+      if (field === "status") {
+        return {
+          ...current,
+          status: value as JustificationStatus
+        };
+      }
+
+      if (field === "note") {
+        return {
+          ...current,
+          note: value
+        };
+      }
+
+      return {
+        ...current,
+        classDate: value
+      };
+    });
+  }
+
+  function handleOpenJustificationEditModal(record: JustificationRecord) {
+    setJustificationModalMode("edit");
+    setEditingJustificationId(record.id);
+    setJustificationForm({
+      classDate: formatBrazilianDateToIso(record.classDate),
+      type: record.type,
+      status: record.status,
+      note: record.note
+    });
+    setSelectedJustificationFile(null);
+    setPersistedJustificationFile(
+      record.fileName
+        ? {
+            name: record.fileName,
+            sizeLabel: record.fileSizeLabel
+          }
+        : null
+    );
+    setJustificationFileError("");
+    setIsJustificationModalOpen(true);
+  }
+
+  function handleJustificationSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedStudent || !justificationForm.classDate || justificationFileError) {
+      return;
+    }
+
+    if (justificationModalMode === "edit" && editingJustificationId) {
+      const nextFileName = selectedJustificationFile?.name ?? persistedJustificationFile?.name;
+      const nextFileSizeLabel = selectedJustificationFile
+        ? formatBytesToReadableSize(selectedJustificationFile.size)
+        : persistedJustificationFile?.sizeLabel;
+
+      setJustificationRecordsByStudent((current) => ({
+        ...current,
+        [selectedStudent.id]: (current[selectedStudent.id] ?? []).map((record) =>
+          record.id === editingJustificationId
+            ? {
+                ...record,
+                classDate: formatIsoDateToBrazilianDate(justificationForm.classDate),
+                type: justificationForm.type,
+                status: justificationForm.status,
+                note: justificationForm.note.trim(),
+                fileName: nextFileName,
+                fileSizeLabel: nextFileSizeLabel
+              }
+            : record
+        )
+      }));
+
+      closeJustificationModal();
+      return;
+    }
+
+    const nextRecord: JustificationRecord = {
+      id: `${selectedStudent.id}-${Date.now()}`,
+      classDate: formatIsoDateToBrazilianDate(justificationForm.classDate),
+      type: justificationForm.type,
+      status: justificationForm.status,
+      note: justificationForm.note.trim(),
+      fileName: selectedJustificationFile?.name,
+      fileSizeLabel: selectedJustificationFile ? formatBytesToReadableSize(selectedJustificationFile.size) : undefined,
+      createdAtLabel: new Intl.DateTimeFormat("pt-BR").format(new Date())
+    };
+
+    setJustificationRecordsByStudent((current) => ({
+      ...current,
+      [selectedStudent.id]: [nextRecord, ...(current[selectedStudent.id] ?? [])]
+    }));
+
+    closeJustificationModal();
+  }
+
+  function handleJustificationFileChange(file: File | null) {
+    if (!file) {
+      setSelectedJustificationFile(null);
+      setJustificationFileError("");
+      return;
+    }
+
+    const isValidType = ["application/pdf", "image/png", "image/jpeg"].includes(file.type);
+    if (!isValidType) {
+      setSelectedJustificationFile(null);
+      setJustificationFileError("Envie um arquivo PDF, PNG ou JPG.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setSelectedJustificationFile(null);
+      setJustificationFileError("O arquivo precisa ter no máximo 10MB.");
+      return;
+    }
+
+    setSelectedJustificationFile(file);
+    setPersistedJustificationFile(null);
+    setJustificationFileError("");
+  }
+
+  function handleJustificationFileRemove() {
+    setSelectedJustificationFile(null);
+    setPersistedJustificationFile(null);
+    setJustificationFileError("");
+  }
+
+  const studentsWithDetails = useMemo(
+    () =>
+      studentEntries.map((student) => {
+        const normalizedModule = normalizeStudentText(student.module)
+          .replace("Módulo", "Módulo")
+          .replace("Módulo", "Módulo");
+        const normalizedClassName = normalizeStudentText(student.className)
+          .replace("Teoria Musical", "Canto coral")
+          .replace("Solfejo", "Violão");
+        const normalizedStatus =
+          student.id === 2 ? "Inativo" : student.id === 5 ? "Trancamento" : student.status;
+
+        return {
+          ...student,
+          status: normalizedStatus,
+          module: normalizedModule,
+          className: normalizedClassName,
+          attendance: getStudentFrequencyRecords(
+            student.id,
+            student.name,
+            normalizedModule,
+            student.moduleTone,
+            normalizedClassName,
+            student.classTone,
+            attendanceEntries
+          ),
+          details:
+            studentDetailsById[student.id] ?? {
+              rg: "52.781.944-8",
+              birthDate: "14/08/2010",
+              sex: "Masculino",
+              maritalStatus: "Solteiro",
+              nationality: "Brasileira",
+              fatherName: "Ricardo Henrique Martins",
+              motherName: "Mariana Alves Martins",
+              attachmentsCount: 0,
+              contact: {
+                phone: "(11) 94728-3184",
+                email: "gabriel.martins@gmail.com",
+                schoolEmail: ""
+              },
+              address: {
+                zipCode: "09370-210",
+                number: "184",
+                street: "Rua das Acácias",
+                complement: "",
+                neighborhood: "Jardim Primavera",
+                city: "Mauá",
+                state: "SP"
+              }
+            }
+        };
+      }),
+    [attendanceEntries, studentEntries]
+  );
+
+  const filteredStudents = useMemo(
+    () => {
+      const visibleStudents = studentsWithDetails.filter((student) => {
+        const search = query.trim().toLowerCase();
+        const matchesQuery =
+          search === "" ||
+          [student.name, student.phone, student.email].some((value) => value.toLowerCase().includes(search));
+        const matchesModule = moduleFilter === "Todos" || student.module === moduleFilter;
+        const matchesClass = classFilter === "Todas" || student.className === classFilter;
+        const matchesStatus = statusFilter === "Todos" || student.status === statusFilter;
+
+        return matchesQuery && matchesModule && matchesClass && matchesStatus;
+      });
+
+      return [...visibleStudents].sort((left, right) => {
+        let comparison = 0;
+
+        if (studentSortKey === "recent") {
+          comparison = right.id - left.id;
+        }
+
+        if (studentSortKey === "name") {
+          comparison = left.name.localeCompare(right.name, "pt-BR");
+        }
+
+        if (studentSortKey === "status") {
+          comparison = compareStudentStatus(left.status, right.status);
+        }
+
+        if (studentSortKey === "contact") {
+          comparison = left.email.localeCompare(right.email, "pt-BR");
+        }
+
+        if (studentSortKey === "module") {
+          comparison = left.module.localeCompare(right.module, "pt-BR", { numeric: true });
+        }
+
+        if (studentSortKey === "className") {
+          comparison = left.className.localeCompare(right.className, "pt-BR", { numeric: true });
+        }
+
+        return studentSortDirection === "asc" ? comparison : comparison * -1;
+      });
+    },
+    [classFilter, moduleFilter, query, statusFilter, studentSortDirection, studentSortKey, studentsWithDetails]
+  );
+
+  function handleStudentSort(nextKey: StudentSortKey) {
+    if (nextKey === studentSortKey) {
+      setStudentSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setStudentSortKey(nextKey);
+    setStudentSortDirection(nextKey === "status" ? "asc" : "asc");
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / studentsPerPage));
+  const paginatedStudents = useMemo(
+    () => filteredStudents.slice((currentPage - 1) * studentsPerPage, currentPage * studentsPerPage),
+    [currentPage, filteredStudents]
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [classFilter, moduleFilter, query, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const moduleFilterOptions = [
+    { value: "Todos", label: "Filtrar por Módulos" },
+    { value: "Módulo I", label: "Módulo I" },
+    { value: "Módulo II", label: "Módulo II" },
+    { value: "Módulo III", label: "Módulo III" }
+  ];
+  const classFilterOptions = classOptions.map((option) => ({
+    value: option,
+    label: option === "Todas" ? "Filtrar por Turmas" : option
+  }));
+  const statusFilterOptions = statusOptions.map((option) => ({
+    value: option,
+    label: option === "Todos" ? "Filtrar por Status" : option
+  }));
+
+  const studentColumns: DataTableColumn<StudentRecord>[] = [
+    {
+      id: "name",
+      header: (
+        <button
+          className={[
+            "inline-flex w-full items-center justify-start gap-1 p-0 text-left font-medium leading-[1.33]",
+            studentSortKey === "name" ? "text-[var(--color-brand-secondary-main)]" : "text-inherit"
+          ].join(" ")}
+          type="button"
+          onClick={() => handleStudentSort("name")}
+        >
+          <span className="text-[var(--text-body-small-size)] leading-4">Nome</span>
+          <ChevronDown
+            className={[
+              "h-4 w-4 shrink-0 transition-[transform,color] duration-150",
+              studentSortKey === "name" ? "text-current" : "text-[#98a2b3]",
+              studentSortKey === "name" && studentSortDirection === "asc" ? "rotate-180" : "rotate-0"
+            ].join(" ")}
+            aria-hidden="true"
+          />
+        </button>
+      ),
+      cell: (student) => (
+        <div className="flex items-center gap-3">
+          {student.avatar ? (
+            <img className="h-10 w-10 rounded-full bg-[#f4ebff] object-cover" src={student.avatar} alt="" aria-hidden="true" />
+          ) : (
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f4ebff] text-[var(--text-body-medium)] font-medium text-[#7f56d9]">
+              {student.initials}
+            </span>
+          )}
+          <button
+            className="cursor-pointer p-0 text-left transition-colors duration-150 hover:text-[var(--color-brand-primary-main)] focus-visible:text-[var(--color-brand-primary-main)]"
+            type="button"
+            onClick={() => {
+              setSelectedStudent(student);
+              setActiveTab("personal");
+            }}
+          >
+            <span className="text-sm font-semibold leading-5 tracking-[-0.35px] text-[var(--color-content-primary)]">{student.name}</span>
+          </button>
+        </div>
+      )
+    },
+    {
+      id: "status",
+      header: (
+        <button
+          className={[
+            "inline-flex w-full items-center justify-start gap-1 p-0 text-left font-medium leading-[1.33]",
+            studentSortKey === "status" ? "text-[var(--color-brand-secondary-main)]" : "text-inherit"
+          ].join(" ")}
+          type="button"
+          onClick={() => handleStudentSort("status")}
+        >
+          <span className="text-[var(--text-body-small-size)] leading-4">Status</span>
+          <ChevronDown
+            className={[
+              "h-4 w-4 shrink-0 transition-[transform,color] duration-150",
+              studentSortKey === "status" ? "text-current" : "text-[#98a2b3]",
+              studentSortKey === "status" && studentSortDirection === "asc" ? "rotate-180" : "rotate-0"
+            ].join(" ")}
+            aria-hidden="true"
+          />
+        </button>
+      ),
+      cell: (student) => <StatusBadge status={student.status} />
+    },
+    {
+      id: "contact",
+      header: (
+        <span className="inline-flex w-full items-center text-[var(--text-body-small-size)] font-medium leading-4 text-inherit">
+          Contato
+        </span>
+      ),
+      cell: (student) => (
+        <div className="flex flex-col gap-1">
+          <span className="text-sm leading-5 text-[var(--color-content-tertiary)]">{student.phone}</span>
+          <span className="text-sm leading-5 text-[var(--color-content-tertiary)]">{student.email}</span>
+        </div>
+      )
+    },
+    {
+      id: "module",
+      header: (
+        <button
+          className={[
+            "inline-flex w-full items-center justify-start gap-1 p-0 text-left font-medium leading-[1.33]",
+            studentSortKey === "module" ? "text-[var(--color-brand-secondary-main)]" : "text-inherit"
+          ].join(" ")}
+          type="button"
+          onClick={() => handleStudentSort("module")}
+        >
+          <span className="text-[var(--text-body-small-size)] leading-4">Módulo</span>
+          <ChevronDown
+            className={[
+              "h-4 w-4 shrink-0 transition-[transform,color] duration-150",
+              studentSortKey === "module" ? "text-current" : "text-[#98a2b3]",
+              studentSortKey === "module" && studentSortDirection === "asc" ? "rotate-180" : "rotate-0"
+            ].join(" ")}
+            aria-hidden="true"
+          />
+        </button>
+      ),
+      cell: (student) => <Pill label={student.module} tone={student.moduleTone as PillTone} />
+    },
+    {
+      id: "className",
+      header: (
+        <button
+          className={[
+            "inline-flex w-full items-center justify-start gap-1 p-0 text-left font-medium leading-[1.33]",
+            studentSortKey === "className" ? "text-[var(--color-brand-secondary-main)]" : "text-inherit"
+          ].join(" ")}
+          type="button"
+          onClick={() => handleStudentSort("className")}
+        >
+          <span className="text-[var(--text-body-small-size)] leading-4">Turma</span>
+          <ChevronDown
+            className={[
+              "h-4 w-4 shrink-0 transition-[transform,color] duration-150",
+              studentSortKey === "className" ? "text-current" : "text-[#98a2b3]",
+              studentSortKey === "className" && studentSortDirection === "asc" ? "rotate-180" : "rotate-0"
+            ].join(" ")}
+            aria-hidden="true"
+          />
+        </button>
+      ),
+      cell: (student) => <Pill label={student.className} tone={student.classTone as PillTone} />
+    }
+  ];
+
+  return (
+    <>
+      {historyStudent ? (
+        <StudentAttendanceHistoryView
+          studentName={historyStudent.name}
+          records={historyStudent.attendance}
+          onBack={() => {
+            setHistoryStudent(null);
+            setSelectedStudent(historyStudent);
+            setActiveTab("frequency");
+          }}
+        />
+      ) : (
+        <>
+      <main className={`students-page ${selectedStudent ? "students-page--drawer-open" : ""}`}>
+        <section className="page-header">
+          <div className="page-header__copy">
+            <h1>Alunos -</h1>
+            <p>Gerencie o cadastro completo de alunos.</p>
+          </div>
+
+          <Button icon={<Plus aria-hidden="true" />} onClick={() => setIsRegistrationTypeModalOpen(true)}>
+            Adicionar aluno
+          </Button>
+        </section>
+
+        <section className="filters" aria-label="Busca e filtros">
+          <SearchInput
+            className="w-full xl:flex-[1.35]"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar por nome, telefone ou email..."
+            ariaLabel="Buscar por nome, telefone ou email"
+          />
+
+          <div className="filters__group xl:flex-[1]">
+            <SelectField
+              ariaLabel="Filtrar por módulos"
+              value={moduleFilter}
+              options={moduleFilterOptions}
+              onChange={(event) => {
+                setModuleFilter(event.target.value as ModuleFilter);
+                setClassFilter("Todas");
+              }}
+            />
+            <SelectField
+              ariaLabel="Filtrar por turmas"
+              value={classFilter}
+              options={classFilterOptions}
+              onChange={(event) => setClassFilter(event.target.value as ClassFilter)}
+            />
+            <SelectField
+              ariaLabel="Filtrar por status"
+              value={statusFilter}
+              options={statusFilterOptions}
+              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+            />
+          </div>
+        </section>
+
+        <DataTable
+          title="Alunos"
+          titleId="students-title"
+          countLabel={`${filteredStudents.length} alunos`}
+          columns={studentColumns}
+          rows={paginatedStudents}
+          rowKey={(student) => student.id}
+          selection={{
+            selectedRowKeys: selectedStudentIds,
+            onSelectionChange: (keys) => setSelectedStudentIds(keys.map((key) => Number(key))),
+            rowAriaLabel: (student) => `Selecionar ${student.name}`,
+            selectAllAriaLabel: "Selecionar todos"
+          }}
+          mobileCard={(student) => (
+            <div className="flex flex-col gap-4 rounded-xl border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2.5">
+                  {student.avatar ? (
+                    <img className="h-10 w-10 rounded-full bg-[#f4ebff] object-cover" src={student.avatar} alt="" aria-hidden="true" />
+                  ) : (
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f4ebff] text-[var(--text-body-medium)] font-medium text-[#7f56d9]">
+                      {student.initials}
+                    </span>
+                  )}
+                  <button
+                    className="p-0 text-left"
+                    type="button"
+                    onClick={() => {
+                      setSelectedStudent(student);
+                      setActiveTab("personal");
+                    }}
+                  >
+                    <span className="text-sm font-semibold leading-5 tracking-[-0.35px] text-[var(--color-content-primary)]">{student.name}</span>
+                  </button>
+                </div>
+                <StatusBadge status={student.status} />
+              </div>
+
+              <div className="grid gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[var(--text-body-small)] font-medium leading-[1.33]">Contato</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm leading-5 text-[var(--color-content-tertiary)]">{student.phone}</span>
+                    <span className="text-sm leading-5 text-[var(--color-content-tertiary)]">{student.email}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[var(--text-body-small)] font-medium leading-[1.33]">Módulo</span>
+                  <Pill label={student.module} tone={student.moduleTone as PillTone} />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[var(--text-body-small)] font-medium leading-[1.33]">Turma</span>
+                  <Pill label={student.className} tone={student.classTone as PillTone} />
+                </div>
+              </div>
+            </div>
+          )}
+          pagination={{
+            currentPage,
+            totalPages,
+            onPageChange: setCurrentPage,
+            ariaLabel: "Paginação da tabela de alunos"
+          }}
+        />
+      </main>
+
+      {selectedStudent ? (
+        <div className={`student-drawer-shell ${isDrawerClosing ? "is-closing" : ""}`}>
+          <StudentDrawer
+            student={selectedStudent}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onOpenFullHistory={() => {
+              setHistoryStudent(selectedStudent);
+              setSelectedStudent(null);
+              setIsDrawerClosing(false);
+            }}
+            onClose={closeDrawer}
+            onOpenDocumentUploadModal={() => {
+              setDocumentUploadError("");
+              setIsDocumentUploadModalOpen(true);
+            }}
+            personalAttachments={selectedStudentAttachments}
+            onViewPersonalAttachment={handleViewPersonalAttachment}
+            onDownloadPersonalAttachment={handleDownloadPersonalAttachment}
+            onRequestDeletePersonalAttachment={handleRequestDeletePersonalAttachment}
+            onOpenJustificationModal={() => {
+              resetJustificationForm();
+              setIsJustificationModalOpen(true);
+            }}
+            onEditJustification={handleOpenJustificationEditModal}
+            justificationRecords={selectedStudentJustifications}
+          />
+        </div>
+      ) : null}
+      <RegistrationTypeModal
+        isOpen={isRegistrationTypeModalOpen}
+        onClose={() => setIsRegistrationTypeModalOpen(false)}
+        onSelectManual={() => {
+          setIsRegistrationTypeModalOpen(false);
+          setIsManualStudentModalOpen(true);
+        }}
+        onSelectOcr={() => {
+          setIsRegistrationTypeModalOpen(false);
+          setScannedUploadFiles(emptyScannedUploadFiles);
+          setScannedEnrollmentForm(emptyScannedEnrollmentForm);
+          setIsScannedStudentModalOpen(true);
+        }}
+      />
+      <ManualStudentRegistrationModal
+        isOpen={isManualStudentModalOpen}
+        onClose={() => setIsManualStudentModalOpen(false)}
+      />
+      <ScannedStudentRegistrationModal
+        isOpen={isScannedStudentModalOpen}
+        onClose={() => {
+          setIsScannedStudentModalOpen(false);
+        }}
+        initialUploadFiles={scannedUploadFiles}
+        onUploadFilesChange={setScannedUploadFiles}
+        onOpenProcessing={(files) => {
+          setScannedUploadFiles(files);
+          setIsScannedStudentModalOpen(false);
+          setIsScannedProcessingModalOpen(true);
+        }}
+      />
+      <ScannedDocumentsProcessingModal
+        isOpen={isScannedProcessingModalOpen}
+        onClose={() => setIsScannedProcessingModalOpen(false)}
+        onComplete={() => {
+          setIsScannedProcessingModalOpen(false);
+          setIsScannedReviewModalOpen(true);
+        }}
+      />
+      <ScannedExtractedDataReviewModal
+        isOpen={isScannedReviewModalOpen}
+        onClose={() => setIsScannedReviewModalOpen(false)}
+        onContinue={() => {
+          setIsScannedReviewModalOpen(false);
+          setIsScannedEnrollmentModalOpen(true);
+        }}
+        uploadedFiles={scannedUploadFiles}
+        onBack={() => {
+          setIsScannedReviewModalOpen(false);
+          setIsScannedStudentModalOpen(true);
+        }}
+      />
+      <ScannedEnrollmentModal
+        isOpen={isScannedEnrollmentModalOpen}
+        onClose={() => setIsScannedEnrollmentModalOpen(false)}
+        values={scannedEnrollmentForm}
+        onChange={setScannedEnrollmentForm}
+        onBack={() => {
+          setIsScannedEnrollmentModalOpen(false);
+          setIsScannedReviewModalOpen(true);
+        }}
+        onContinue={() => {
+          setIsScannedEnrollmentModalOpen(false);
+          setIsScannedConfirmModalOpen(true);
+        }}
+      />
+      <ScannedConfirmModal
+        isOpen={isScannedConfirmModalOpen}
+        onClose={() => setIsScannedConfirmModalOpen(false)}
+        onBack={() => {
+          setIsScannedConfirmModalOpen(false);
+          setIsScannedEnrollmentModalOpen(true);
+        }}
+        onSave={() => {
+          setStudentEntries((current) => {
+            const nextId = current.reduce((max, student) => Math.max(max, student.id), 0) + 1;
+            const nextStudent: (typeof students)[number] = {
+              id: nextId,
+              name: "Gabriel Henrique Martins",
+              initials: "GH",
+              phone: "(11) 94728-3184",
+              email: "gabriel.martins@gmail.com",
+              status: "Ativo",
+              avatar: undefined,
+              module: scannedEnrollmentForm.module || "Módulo I",
+              moduleTone: "violet",
+              className: scannedEnrollmentForm.className || "Classe 1",
+              classTone: "blue"
+            };
+
+            return [nextStudent, ...current];
+          });
+          setStudentSortKey("recent");
+          setStudentSortDirection("desc");
+          setCurrentPage(1);
+          setIsScannedConfirmModalOpen(false);
+          setScannedUploadFiles(emptyScannedUploadFiles);
+          setScannedEnrollmentForm(emptyScannedEnrollmentForm);
+        }}
+        uploadedFiles={scannedUploadFiles}
+        enrollment={scannedEnrollmentForm}
+      />
+      {selectedStudent ? (
+        <StudentAttachmentDeleteModal
+          isOpen={Boolean(attachmentPendingDelete)}
+          attachmentName={attachmentPendingDelete?.file.name ?? "anexo"}
+          onClose={closeAttachmentDeleteModal}
+          onConfirm={handleConfirmDeletePersonalAttachment}
+        />
+      ) : null}
+      {selectedStudent ? (
+        <StudentDocumentUploadModal
+          isOpen={isDocumentUploadModalOpen}
+          fileError={documentUploadError}
+          onClose={closeDocumentUploadModal}
+          onFileSelected={handleDocumentFileSelected}
+        />
+      ) : null}
+      {selectedStudent ? (
+        <StudentJustificationModal
+          isOpen={isJustificationModalOpen}
+          studentName={selectedStudent.name}
+          form={justificationForm}
+          selectedFile={selectedJustificationFile}
+          persistedFile={persistedJustificationFile}
+          fileError={justificationFileError}
+          mode={justificationModalMode}
+          onClose={closeJustificationModal}
+          onSubmit={handleJustificationSubmit}
+          onFieldChange={handleJustificationFieldChange}
+          onFileChange={handleJustificationFileChange}
+          onFileRemove={handleJustificationFileRemove}
+        />
+      ) : null}
+        </>
+      )}
+    </>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

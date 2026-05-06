@@ -1,15 +1,16 @@
-import type { LucideIcon } from "lucide-react";
 import { ArrowRight } from "lucide-react";
+import {
+  dashboardActionCardArrowStyles,
+  dashboardActionCardCopyStyles,
+  dashboardActionCardDescriptionStyles,
+  dashboardActionCardIconStyles,
+  dashboardActionCardStyles,
+  dashboardActionCardTitleStyles,
+  dashboardActionCardTopStyles
+} from "./dashboard-action-card.styles";
+import type { DashboardActionCardProps } from "./dashboard-action-card.types";
 
-type DashboardActionCardTone = "primary" | "purple" | "green";
-
-type DashboardActionCardProps = {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  tone: DashboardActionCardTone;
-  onClick: () => void;
-};
+export type { DashboardActionCardProps, DashboardActionCardTone } from "./dashboard-action-card.types";
 
 export function DashboardActionCard({
   title,
@@ -19,17 +20,17 @@ export function DashboardActionCard({
   onClick
 }: DashboardActionCardProps) {
   return (
-    <button className={`dashboard-action-card dashboard-action-card--${tone}`} type="button" onClick={onClick}>
-      <div className="dashboard-action-card__top">
-        <span className="dashboard-action-card__icon" aria-hidden="true">
+    <button className={dashboardActionCardStyles({ tone })} type="button" onClick={onClick}>
+      <div className={dashboardActionCardTopStyles}>
+        <span className={dashboardActionCardIconStyles({ tone })} aria-hidden="true">
           <Icon />
         </span>
-        <ArrowRight className="dashboard-action-card__arrow" aria-hidden="true" />
+        <ArrowRight className={dashboardActionCardArrowStyles({ tone })} aria-hidden="true" />
       </div>
 
-      <div className="dashboard-action-card__copy">
-        <strong>{title}</strong>
-        <p>{description}</p>
+      <div className={dashboardActionCardCopyStyles}>
+        <strong className={dashboardActionCardTitleStyles({ tone })}>{title}</strong>
+        <p className={dashboardActionCardDescriptionStyles({ tone })}>{description}</p>
       </div>
     </button>
   );

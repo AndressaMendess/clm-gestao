@@ -1,6 +1,7 @@
-﻿import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Download, Eye, FileText, Plus, Trash2, Upload, X } from "lucide-react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, Copy, Plus, Trash2, X } from "lucide-react";
 
+import { AttachmentIcon } from "@/src/components/ui/attachment-icon";
 import { Button, IconButton } from "@/src/components/ui/button";
 import { Checkbox } from "@/src/components/ui/checkbox";
 import { CollapsibleCard } from "@/src/components/ui/collapsible-card";
@@ -9,7 +10,7 @@ import { SearchInput } from "@/src/components/ui/search-input";
 import { SecondaryButton } from "@/src/components/ui/secondary-button";
 import { SelectField } from "@/src/components/ui/select-field";
 import { StatusBadge } from "@/src/components/ui/status-badge";
-import { TableCard } from "@/src/components/ui/table-card";
+import { DataTable, type DataTableColumn } from "@/src/components/ui/data-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
 import { statusOptions, type StatusFilter } from "../data/filters";
 import { teachers } from "../data/teachers";
@@ -34,6 +35,7 @@ type PersonalAttachmentRecord = {
   fileName: string;
   fileSizeLabel: string;
   createdAtLabel: string;
+  file?: File;
 };
 
 const drawerTabs: Array<{ id: DrawerTab; label: string }> = [
@@ -73,9 +75,33 @@ const personalAttachmentsByTeacherId: Record<number, PersonalAttachmentRecord[]>
   8: [{ id: "8-doc-1", fileName: "RG - Paulo Henrique.pdf", fileSizeLabel: "201 KB", createdAtLabel: "Enviado em 09/04/2026" }]
 };
 
+const defaultTeacherDetails: TeacherRecord["details"] = {
+  rg: "-",
+  birthDate: "-",
+  sex: "-",
+  maritalStatus: "-",
+  nationality: "Brasileira",
+  schoolEmail: "-",
+  attachmentsCount: 0
+};
+
+const personalDocumentAcceptedExtensions = [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"];
+const personalDocumentAcceptedMimeTypes = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png"
+];
+
 function compareTeacherStatus(left: StatusFilter, right: StatusFilter) {
   const order = { Ativo: 0, Inativo: 1, Trancamento: 2, Todos: 3 };
   return order[left] - order[right];
+}
+
+function hasSupportedPersonalDocumentExtension(fileName: string) {
+  const normalizedName = fileName.toLowerCase();
+  return personalDocumentAcceptedExtensions.some((extension) => normalizedName.endsWith(extension));
 }
 
 function DrawerField({ label, value }: { label: string; value: string }) {
@@ -88,54 +114,98 @@ function DrawerField({ label, value }: { label: string; value: string }) {
 }
 
 function ContactLinkRow({ label, value, href }: { label: string; value: string; href: string }) {
+  const handleCopyValue = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // No-op fallback: if clipboard permission fails, keep UI stable.
+    }
+  };
+
   return (
-    <div className="contact-link-row">
+    <div className="flex flex-col gap-1">
       <span className="student-field__label">{label}</span>
-      <div className="contact-link-row__content">
-        <a className="contact-link-row__link" href={href}>
+      <div className="flex items-center justify-between gap-3 px-0 py-0">
+        <a className="min-w-0 truncate text-sm font-medium text-[var(--color-brand-primary-main)] hover:underline" href={href}>
           {value}
         </a>
-        <button className="copy-icon-button" type="button" aria-label={`Copiar ${label}`}>
-          <span className="copy-icon-button__back" aria-hidden="true" />
-          <span className="copy-icon-button__front" aria-hidden="true" />
-        </button>
+        <IconButton
+          className="h-8 w-8 min-h-8 rounded-full border-transparent bg-transparent text-[var(--color-neutral-500)] hover:bg-[var(--color-neutral-100)]"
+          icon={<Copy aria-hidden="true" size={16} />}
+          label={`Copiar ${label}`}
+          onClick={handleCopyValue}
+        />
       </div>
     </div>
   );
 }
 
-function PersonalAttachmentCard({ records }: { records: PersonalAttachmentRecord[] }) {
+function PersonalAttachmentCard({
+  records,
+  onOpenDocumentUploadModal,
+  onView,
+  onDownload,
+  onRequestDelete
+}: {
+  records: PersonalAttachmentRecord[];
+  onOpenDocumentUploadModal: () => void;
+  onView: (record: PersonalAttachmentRecord) => void;
+  onDownload: (record: PersonalAttachmentRecord) => void;
+  onRequestDelete: (record: PersonalAttachmentRecord) => void;
+}) {
   return (
     <CollapsibleCard
       className="student-card student-card--attachments"
       title="Documentos Pessoais"
-      icon={<FileText className="attachment-symbol attachment-symbol--section" aria-hidden="true" />}
+      icon={<AttachmentIcon name="file" className="attachment-symbol attachment-symbol--section" />}
       badge={records.length}
     >
-      <div className="attachment-section__body">
-        <SecondaryButton className="attachment-action-button" icon={<Upload className="attachment-symbol attachment-symbol--action" aria-hidden="true" />}>
+      <div className="flex flex-col gap-3 p-0">
+        <SecondaryButton
+          className="min-h-[42px] rounded-[10px] border border-[#d0d5dd] bg-[var(--color-surface-card)] text-sm font-medium text-[#344054] shadow-none"
+          icon={<AttachmentIcon name="upload" className="attachment-symbol attachment-symbol--action" />}
+          onClick={onOpenDocumentUploadModal}
+        >
           Adicionar documento
         </SecondaryButton>
         {records.length > 0 ? (
-          <div className="attachment-files">
+          <div className="flex flex-col gap-3">
             {records.map((record) => (
-              <article key={record.id} className="attachment-file">
-                <div className="attachment-file__meta">
-                  <FileText className="attachment-symbol attachment-symbol--file" aria-hidden="true" />
-                  <div className="attachment-file__text">
-                    <button className="attachment-file__name-button" type="button">
+              <article key={record.id} className="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--color-surface-border)] bg-[#f9fafb] p-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <AttachmentIcon name="file" className="attachment-symbol attachment-symbol--file-item" />
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <Button
+                      className="h-auto min-h-0 w-fit justify-start p-0 text-left text-sm font-semibold tracking-[-0.28px] text-[var(--color-neutral-850)] underline"
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                      onClick={() => onView(record)}
+                    >
                       {record.fileName}
-                    </button>
-                    <span>{`${record.fileSizeLabel} · ${record.createdAtLabel}`}</span>
+                    </Button>
+                    <span className="text-xs tracking-[-0.24px] text-[#667085]">{`${record.fileSizeLabel} · ${record.createdAtLabel}`}</span>
                   </div>
                 </div>
-                <div className="attachment-file__actions">
-                  <button className="attachment-icon-button" type="button" aria-label={`Visualizar ${record.fileName}`}>
-                    <Eye className="attachment-symbol attachment-symbol--action" aria-hidden="true" />
-                  </button>
-                  <button className="attachment-icon-button" type="button" aria-label={`Baixar ${record.fileName}`}>
-                    <Download className="attachment-symbol attachment-symbol--action" aria-hidden="true" />
-                  </button>
+                <div className="flex items-center gap-1">
+                  <IconButton
+                    className="h-7 w-7 min-h-7 rounded border-transparent"
+                    icon={<AttachmentIcon name="view" className="attachment-symbol attachment-symbol--action" />}
+                    label={`Visualizar ${record.fileName}`}
+                    onClick={() => onView(record)}
+                  />
+                  <IconButton
+                    className="h-7 w-7 min-h-7 rounded border-transparent"
+                    icon={<AttachmentIcon name="download" className="attachment-symbol attachment-symbol--action" />}
+                    label={`Baixar ${record.fileName}`}
+                    onClick={() => onDownload(record)}
+                  />
+                  <IconButton
+                    className="h-7 w-7 min-h-7 rounded border-transparent"
+                    icon={<AttachmentIcon name="trash" className="attachment-symbol attachment-symbol--action" />}
+                    label={`Excluir ${record.fileName}`}
+                    onClick={() => onRequestDelete(record)}
+                  />
                 </div>
               </article>
             ))}
@@ -146,18 +216,150 @@ function PersonalAttachmentCard({ records }: { records: PersonalAttachmentRecord
   );
 }
 
+function TeacherDocumentUploadModal({
+  isOpen,
+  fileError,
+  onClose,
+  onFileSelected
+}: {
+  isOpen: boolean;
+  fileError: string;
+  onClose: () => void;
+  onFileSelected: (file: File | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const acceptedFilesHint = "PDF, DOC, DOCX, JPG ou PNG (max. 10MB)";
+  const acceptedInput = ".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+
+  return (
+    <div className="justification-modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        className="justification-modal w-full max-w-[440px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="teacher-document-upload-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="justification-modal__header">
+          <div className="justification-modal__copy">
+            <h2 id="teacher-document-upload-modal-title">Adicionar anexo</h2>
+          </div>
+
+          <button className="justification-modal__close" type="button" aria-label="Fechar modal" onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <div className="px-6 pb-6">
+          <div
+            className="relative flex min-h-[212px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#c2c5c8] bg-[#fafafb] px-8 py-4 text-center"
+            onDragOver={(event) => {
+              event.preventDefault();
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              onFileSelected(event.dataTransfer.files?.[0] ?? null);
+            }}
+          >
+            <input
+              ref={inputRef}
+              type="file"
+              className="sr-only"
+              accept={acceptedInput}
+              onChange={(event) => {
+                onFileSelected(event.target.files?.[0] ?? null);
+                event.target.value = "";
+              }}
+            />
+            <span className="inline-flex h-10 w-10 items-center justify-center text-[#4a4f57]" aria-hidden="true">
+              <AttachmentIcon name="upload" className="attachment-symbol attachment-symbol--action" />
+            </span>
+            <p className="m-0 text-[var(--text-body-medium)] font-medium leading-6 tracking-[-0.28px] text-[var(--color-content-primary)]">Clique para fazer upload ou arraste e solte</p>
+            <p className="m-0 mb-1.5 text-[var(--text-body-small)] leading-6 tracking-[-0.24px] text-[#44484d]">{acceptedFilesHint}</p>
+            <Button
+              className="min-h-11"
+              type="button"
+              variant="primary"
+              onClick={() => {
+                inputRef.current?.click();
+              }}
+            >
+              Selecionar arquivos
+            </Button>
+          </div>
+          {fileError ? <small className="mt-2 block text-xs leading-4 text-[#b42318]">{fileError}</small> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeacherAttachmentDeleteModal({
+  isOpen,
+  attachmentName,
+  onClose,
+  onConfirm
+}: {
+  isOpen: boolean;
+  attachmentName: string;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="justification-modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        className="justification-modal max-w-[448px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="teacher-attachment-delete-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex flex-col gap-4 p-6">
+          <h2 id="teacher-attachment-delete-modal-title">Remover anexo</h2>
+          <p>Tem certeza que deseja remover este anexo? Esta ação não pode ser desfeita.</p>
+          <div className="flex w-full gap-2">
+            <Button className="min-h-11 flex-1 border border-[#d9dbdd]" type="button" variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button className="min-h-11 flex-1" type="button" variant="danger" onClick={onConfirm} aria-label={`Remover ${attachmentName}`}>
+              Remover
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TeacherDrawerTabContent({
   teacher,
   activeTab,
-  personalAttachments
+  personalAttachments,
+  onOpenDocumentUploadModal,
+  onViewPersonalAttachment,
+  onDownloadPersonalAttachment,
+  onRequestDeletePersonalAttachment
 }: {
   teacher: TeacherRecord;
   activeTab: DrawerTab;
   personalAttachments: PersonalAttachmentRecord[];
+  onOpenDocumentUploadModal: () => void;
+  onViewPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onDownloadPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onRequestDeletePersonalAttachment: (record: PersonalAttachmentRecord) => void;
 }) {
   if (activeTab === "contact") {
     return (
-      <div className="student-card student-card--contact">
+      <div className="student-card gap-6">
         <ContactLinkRow label="Telefone" value={teacher.phone} href={`tel:${teacher.phone}`} />
         <ContactLinkRow label="E-mail" value={teacher.email} href={`mailto:${teacher.email}`} />
         <ContactLinkRow label="Email Escolar" value={teacher.details.schoolEmail} href={`mailto:${teacher.details.schoolEmail}`} />
@@ -166,7 +368,15 @@ function TeacherDrawerTabContent({
   }
 
   if (activeTab === "attachments") {
-    return <PersonalAttachmentCard records={personalAttachments} />;
+    return (
+      <PersonalAttachmentCard
+        records={personalAttachments}
+        onOpenDocumentUploadModal={onOpenDocumentUploadModal}
+        onView={onViewPersonalAttachment}
+        onDownload={onDownloadPersonalAttachment}
+        onRequestDelete={onRequestDeletePersonalAttachment}
+      />
+    );
   }
 
   return (
@@ -203,13 +413,21 @@ function TeacherDrawer({
   activeTab,
   onTabChange,
   onClose,
-  personalAttachments
+  personalAttachments,
+  onOpenDocumentUploadModal,
+  onViewPersonalAttachment,
+  onDownloadPersonalAttachment,
+  onRequestDeletePersonalAttachment
 }: {
   teacher: TeacherRecord;
   activeTab: DrawerTab;
   onTabChange: (tab: DrawerTab) => void;
   onClose: () => void;
   personalAttachments: PersonalAttachmentRecord[];
+  onOpenDocumentUploadModal: () => void;
+  onViewPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onDownloadPersonalAttachment: (record: PersonalAttachmentRecord) => void;
+  onRequestDeletePersonalAttachment: (record: PersonalAttachmentRecord) => void;
 }) {
   const initials =
     teacher.initials ??
@@ -256,7 +474,7 @@ function TeacherDrawer({
             {drawerTabs.map((tab) => (
               <TabsTrigger key={tab.id} className="student-drawer__tab" value={tab.id} variant="drawer">
                 {tab.label}
-                {tab.id === "attachments" ? <span className="student-drawer__tab-badge">{teacher.details.attachmentsCount}</span> : null}
+                {tab.id === "attachments" ? <span className="student-drawer__tab-badge">{personalAttachments.length}</span> : null}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -264,7 +482,15 @@ function TeacherDrawer({
           <div className="student-drawer__content">
             {drawerTabs.map((tab) => (
               <TabsContent key={tab.id} value={tab.id}>
-                <TeacherDrawerTabContent teacher={teacher} activeTab={tab.id} personalAttachments={personalAttachments} />
+                <TeacherDrawerTabContent
+                  teacher={teacher}
+                  activeTab={tab.id}
+                  personalAttachments={personalAttachments}
+                  onOpenDocumentUploadModal={onOpenDocumentUploadModal}
+                  onViewPersonalAttachment={onViewPersonalAttachment}
+                  onDownloadPersonalAttachment={onDownloadPersonalAttachment}
+                  onRequestDeletePersonalAttachment={onRequestDeletePersonalAttachment}
+                />
               </TabsContent>
             ))}
           </div>
@@ -280,16 +506,24 @@ export function TeachersPage() {
   const [specialtyFilter, setSpecialtyFilter] = useState("Todas");
   const [teacherSortKey, setTeacherSortKey] = useState<TeacherSortKey>("name");
   const [teacherSortDirection, setTeacherSortDirection] = useState<"asc" | "desc">("asc");
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTeacher, setSelectedTeacher] = useState<TeacherRecord | null>(null);
   const [activeTab, setActiveTab] = useState<DrawerTab>("personal");
   const [isDrawerClosing, setIsDrawerClosing] = useState(false);
+  const [personalAttachmentsByTeacher, setPersonalAttachmentsByTeacher] = useState<Record<number, PersonalAttachmentRecord[]>>(personalAttachmentsByTeacherId);
+  const [isDocumentUploadModalOpen, setIsDocumentUploadModalOpen] = useState(false);
+  const [documentUploadError, setDocumentUploadError] = useState("");
+  const [attachmentPendingDelete, setAttachmentPendingDelete] = useState<PersonalAttachmentRecord | null>(null);
 
   const teachersWithDetails = useMemo(
     () =>
       teachers.map((teacher) => ({
         ...teacher,
-        details: teacherDetailsById[teacher.id]
+        details: teacherDetailsById[teacher.id] ?? {
+          ...defaultTeacherDetails,
+          schoolEmail: teacher.email
+        }
       })),
     []
   );
@@ -302,6 +536,15 @@ export function TeachersPage() {
       setIsDrawerClosing(false);
     }, 220);
   };
+
+  function closeDocumentUploadModal() {
+    setIsDocumentUploadModalOpen(false);
+    setDocumentUploadError("");
+  }
+
+  function closeAttachmentDeleteModal() {
+    setAttachmentPendingDelete(null);
+  }
 
   useEffect(() => {
     if (!selectedTeacher) {
@@ -317,6 +560,85 @@ export function TeachersPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedTeacher]);
+
+  function handleAddTeacherDocument(file: File | null) {
+    if (!file || !selectedTeacher) {
+      return;
+    }
+
+    const isValidType = personalDocumentAcceptedMimeTypes.includes(file.type) || hasSupportedPersonalDocumentExtension(file.name);
+    if (!isValidType) {
+      setDocumentUploadError("Envie um arquivo PDF, DOC, DOCX, JPG ou PNG.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setDocumentUploadError("O arquivo precisa ter no máximo 10MB.");
+      return;
+    }
+
+    const createdAt = new Date();
+    const createdAtLabel = `Enviado em ${createdAt.toLocaleDateString("pt-BR")}`;
+    const fileSizeLabel = `${Math.max(1, Math.round(file.size / 1024))} KB`;
+
+    setPersonalAttachmentsByTeacher((current) => {
+      const currentRecords = current[selectedTeacher.id] ?? [];
+      const nextRecord: PersonalAttachmentRecord = {
+        id: `${selectedTeacher.id}-doc-${createdAt.getTime()}`,
+        fileName: file.name,
+        fileSizeLabel,
+        createdAtLabel,
+        file
+      };
+
+      return {
+        ...current,
+        [selectedTeacher.id]: [nextRecord, ...currentRecords]
+      };
+    });
+    closeDocumentUploadModal();
+  }
+
+  function handleViewTeacherAttachment(record: PersonalAttachmentRecord) {
+    if (!record.file) {
+      return;
+    }
+
+    const fileUrl = URL.createObjectURL(record.file);
+    window.open(fileUrl, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+  }
+
+  function handleDownloadTeacherAttachment(record: PersonalAttachmentRecord) {
+    if (!record.file) {
+      return;
+    }
+
+    const fileUrl = URL.createObjectURL(record.file);
+    const anchor = document.createElement("a");
+    anchor.href = fileUrl;
+    anchor.download = record.file.name;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(fileUrl);
+  }
+
+  function handleRequestDeleteTeacherAttachment(record: PersonalAttachmentRecord) {
+    setAttachmentPendingDelete(record);
+  }
+
+  function handleConfirmDeleteTeacherAttachment() {
+    if (!selectedTeacher || !attachmentPendingDelete) {
+      return;
+    }
+
+    setPersonalAttachmentsByTeacher((current) => ({
+      ...current,
+      [selectedTeacher.id]: (current[selectedTeacher.id] ?? []).filter((record) => record.id !== attachmentPendingDelete.id)
+    }));
+    closeAttachmentDeleteModal();
+  }
 
   const specialtyOptions = useMemo(() => {
     const uniqueSpecialties = [...new Set(teachersWithDetails.map((teacher) => teacher.specialty).sort((a, b) => a.localeCompare(b, "pt-BR")))];
@@ -368,7 +690,7 @@ export function TeachersPage() {
     setTeacherSortDirection("asc");
   }
 
-  const teachersPerPage = 8;
+  const teachersPerPage = 10;
   const totalPages = Math.max(1, Math.ceil(filteredTeachers.length / teachersPerPage));
   const paginatedTeachers = useMemo(
     () => filteredTeachers.slice((currentPage - 1) * teachersPerPage, currentPage * teachersPerPage),
@@ -390,13 +712,127 @@ export function TeachersPage() {
     label: option === "Todos" ? "Filtrar por status" : option
   }));
 
+  const teacherColumns: DataTableColumn<TeacherRecord>[] = [
+    {
+      id: "name",
+      header: (
+        <button
+          className={[
+            "inline-flex w-full items-center justify-start gap-1 p-0 text-left font-medium leading-[1.33]",
+            teacherSortKey === "name" ? "text-[var(--color-brand-secondary-main)]" : "text-inherit"
+          ].join(" ")}
+          type="button"
+          onClick={() => handleTeacherSort("name")}
+        >
+          <span className="text-[var(--text-body-small-size)] leading-4">Nome</span>
+          <ChevronDown
+            className={[
+              "h-4 w-4 shrink-0 transition-[transform,color] duration-150",
+              teacherSortKey === "name" ? "text-current" : "text-[#98a2b3]",
+              teacherSortKey === "name" && teacherSortDirection === "asc" ? "rotate-180" : "rotate-0"
+            ].join(" ")}
+            aria-hidden="true"
+          />
+        </button>
+      ),
+      cell: (teacher) => (
+        <div className="flex items-center gap-3">
+          {teacher.avatar ? (
+            <img className="h-10 w-10 rounded-full bg-[#f4ebff] object-cover" src={teacher.avatar} alt="" aria-hidden="true" />
+          ) : (
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f4ebff] text-[var(--text-body-medium)] font-medium text-[#7f56d9]">
+              {teacher.initials}
+            </span>
+          )}
+          <button
+            className="cursor-pointer p-0 text-left transition-colors duration-150 hover:text-[var(--color-brand-primary-main)] focus-visible:text-[var(--color-brand-primary-main)]"
+            type="button"
+            onClick={() => {
+              setSelectedTeacher(teacher);
+              setActiveTab("personal");
+            }}
+          >
+            <span className="text-sm font-semibold leading-5 tracking-[-0.35px] text-[var(--color-content-primary)]">{teacher.name}</span>
+          </button>
+        </div>
+      )
+    },
+    {
+      id: "status",
+      header: (
+        <button
+          className={[
+            "inline-flex w-full items-center justify-start gap-1 p-0 text-left font-medium leading-[1.33]",
+            teacherSortKey === "status" ? "text-[var(--color-brand-secondary-main)]" : "text-inherit"
+          ].join(" ")}
+          type="button"
+          onClick={() => handleTeacherSort("status")}
+        >
+          <span className="text-[var(--text-body-small-size)] leading-4">Status</span>
+          <ChevronDown
+            className={[
+              "h-4 w-4 shrink-0 transition-[transform,color] duration-150",
+              teacherSortKey === "status" ? "text-current" : "text-[#98a2b3]",
+              teacherSortKey === "status" && teacherSortDirection === "asc" ? "rotate-180" : "rotate-0"
+            ].join(" ")}
+            aria-hidden="true"
+          />
+        </button>
+      ),
+      cell: (teacher) => <StatusBadge status={teacher.status} />
+    },
+    {
+      id: "contact",
+      header: (
+        <span className="inline-flex w-full items-center text-[var(--text-body-small-size)] font-medium leading-4 text-inherit">
+          Contato
+        </span>
+      ),
+      cell: (teacher) => (
+        <div className="flex flex-col gap-1">
+          <span className="text-sm leading-5 text-[var(--color-content-tertiary)]">{teacher.phone}</span>
+          <span className="text-sm leading-5 text-[var(--color-content-tertiary)]">{teacher.email}</span>
+        </div>
+      )
+    },
+    {
+      id: "specialty",
+      header: (
+        <button
+          className={[
+            "inline-flex w-full items-center justify-start gap-1 p-0 text-left font-medium leading-[1.33]",
+            teacherSortKey === "specialty" ? "text-[var(--color-brand-secondary-main)]" : "text-inherit"
+          ].join(" ")}
+          type="button"
+          onClick={() => handleTeacherSort("specialty")}
+        >
+          <span className="text-[var(--text-body-small-size)] leading-4">Especialidade</span>
+          <ChevronDown
+            className={[
+              "h-4 w-4 shrink-0 transition-[transform,color] duration-150",
+              teacherSortKey === "specialty" ? "text-current" : "text-[#98a2b3]",
+              teacherSortKey === "specialty" && teacherSortDirection === "asc" ? "rotate-180" : "rotate-0"
+            ].join(" ")}
+            aria-hidden="true"
+          />
+        </button>
+      ),
+      cell: (teacher) => <Pill label={teacher.specialty} tone={teacher.specialtyTone} />
+    }
+  ];
+
   return (
     <>
-      <main className={`students-page ${selectedTeacher ? "students-page--drawer-open" : ""}`}>
-        <section className="page-header">
-          <div className="page-header__copy">
-            <h1>Professores -</h1>
-            <p>Gerencie o cadastro completo de professores.</p>
+      <main
+        className={[
+          "flex flex-1 flex-col gap-6 px-3 pb-6 sm:px-4 lg:px-6",
+          selectedTeacher ? "pointer-events-none select-none" : ""
+        ].join(" ")}
+      >
+        <section className="flex flex-col items-start justify-between gap-4 pt-6 xl:flex-row xl:items-center">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="m-0 text-[20px] font-semibold leading-[1.4] tracking-[-0.5px] text-[var(--color-content-primary)]">Professores -</h1>
+            <p className="m-0 text-[20px] leading-[1.4] tracking-[-0.5px] text-[var(--color-content-tertiary)]">Gerencie o cadastro completo de professores.</p>
           </div>
 
           <Button icon={<Plus aria-hidden="true" />} variant="ghost">
@@ -404,15 +840,16 @@ export function TeachersPage() {
           </Button>
         </section>
 
-        <section className="filters" aria-label="Busca e filtros de professores">
+        <section className="flex flex-wrap gap-2" aria-label="Busca e filtros de professores">
           <SearchInput
+            className="w-full xl:flex-[1.35]"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Buscar por nome, telefone ou email..."
             ariaLabel="Buscar por nome, telefone ou email"
           />
 
-          <div className="filters__group">
+          <div className="flex w-full flex-1 flex-wrap gap-2 sm:w-auto xl:flex-[1]">
             <SelectField
               ariaLabel="Filtrar por especialidade"
               value={specialtyFilter}
@@ -428,188 +865,67 @@ export function TeachersPage() {
           </div>
         </section>
 
-        <TableCard title="Professores" titleId="teachers-title" countLabel={`${filteredTeachers.length} professores`}>
-          <div className="table-scroll students-table-shell">
-            <table className="students-table">
-              <thead>
-                <tr>
-                  <th>
-                    <div className="header-with-checkbox">
-                      <Checkbox aria-label="Selecionar todos" />
-                      <button
-                        className={`table-header-button ${teacherSortKey === "name" ? "is-active" : ""}`}
-                        type="button"
-                        onClick={() => handleTeacherSort("name")}
-                      >
-                        <span>Nome</span>
-                        <ChevronDown
-                          className={`table-header-button__icon ${
-                            teacherSortKey === "name" && teacherSortDirection === "asc" ? "is-ascending" : ""
-                          }`}
-                          aria-hidden="true"
-                        />
-                      </button>
-                    </div>
-                  </th>
-                  <th>
-                    <button
-                      className={`table-header-button ${teacherSortKey === "status" ? "is-active" : ""}`}
-                      type="button"
-                      onClick={() => handleTeacherSort("status")}
-                    >
-                      <span>Status</span>
-                      <ChevronDown
-                        className={`table-header-button__icon ${
-                          teacherSortKey === "status" && teacherSortDirection === "asc" ? "is-ascending" : ""
-                        }`}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </th>
-                  <th>
-                    <span className="table-header-label">Contato</span>
-                  </th>
-                  <th>
-                    <button
-                      className={`table-header-button ${teacherSortKey === "specialty" ? "is-active" : ""}`}
-                      type="button"
-                      onClick={() => handleTeacherSort("specialty")}
-                    >
-                      <span>Especialidade</span>
-                      <ChevronDown
-                        className={`table-header-button__icon ${
-                          teacherSortKey === "specialty" && teacherSortDirection === "asc" ? "is-ascending" : ""
-                        }`}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {paginatedTeachers.map((teacher) => (
-                  <tr key={teacher.id}>
-                    <td>
-                      <div className="student-cell">
-                        <Checkbox aria-label={`Selecionar ${teacher.name}`} />
-
-                        {teacher.avatar ? (
-                          <img className="student-avatar" src={teacher.avatar} alt="" aria-hidden="true" />
-                        ) : (
-                          <span className="student-avatar student-avatar--initials">{teacher.initials}</span>
-                        )}
-
-                        <button
-                          className="student-name-button"
-                          type="button"
-                          onClick={() => {
-                            setSelectedTeacher(teacher);
-                            setActiveTab("personal");
-                          }}
-                        >
-                          <span className="student-name">{teacher.name}</span>
-                        </button>
-                      </div>
-                    </td>
-                    <td>
-                      <StatusBadge status={teacher.status} />
-                    </td>
-                    <td>
-                      <div className="contact-cell">
-                        <span>{teacher.phone}</span>
-                        <span>{teacher.email}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <Pill label={teacher.specialty} tone={teacher.specialtyTone} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="students-mobile-list">
-            {paginatedTeachers.map((teacher) => (
-              <article key={teacher.id} className="students-mobile-card">
-                <div className="students-mobile-card__header">
-                  <div className="student-cell">
-                    <Checkbox aria-label={`Selecionar ${teacher.name}`} />
-
-                    {teacher.avatar ? (
-                      <img className="student-avatar" src={teacher.avatar} alt="" aria-hidden="true" />
-                    ) : (
-                      <span className="student-avatar student-avatar--initials">{teacher.initials}</span>
-                    )}
-
-                    <button
-                      className="student-name-button"
-                      type="button"
-                      onClick={() => {
-                        setSelectedTeacher(teacher);
-                        setActiveTab("personal");
-                      }}
-                    >
-                      <span className="student-name">{teacher.name}</span>
-                    </button>
-                  </div>
-                  <StatusBadge status={teacher.status} />
-                </div>
-
-                <div className="students-mobile-card__body">
-                  <div className="students-mobile-card__field">
-                    <span>Contato</span>
-                    <div className="contact-cell">
-                      <span>{teacher.phone}</span>
-                      <span>{teacher.email}</span>
-                    </div>
-                  </div>
-
-                  <div className="students-mobile-card__field">
-                    <span>Especialidade</span>
-                    <Pill label={teacher.specialty} tone={teacher.specialtyTone} />
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {totalPages > 1 ? (
-            <footer className="pagination">
-              <button
-                className="pagination__button"
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={currentPage === 1}
-              >
-                <span>Anterior</span>
-              </button>
-
-              <div className="pagination__numbers" aria-label="Paginação da tabela de professores">
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+        <DataTable
+          title="Professores"
+          titleId="teachers-title"
+          countLabel={`${filteredTeachers.length} professores`}
+          columns={teacherColumns}
+          rows={paginatedTeachers}
+          rowKey={(teacher) => teacher.id}
+          selection={{
+            selectedRowKeys: selectedTeacherIds,
+            onSelectionChange: (keys) => setSelectedTeacherIds(keys.map((key) => Number(key))),
+            rowAriaLabel: (teacher) => `Selecionar ${teacher.name}`,
+            selectAllAriaLabel: "Selecionar todos"
+          }}
+          mobileCard={(teacher) => (
+            <div className="flex flex-col gap-4 rounded-xl border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2.5">
+                  {teacher.avatar ? (
+                    <img className="h-10 w-10 rounded-full bg-[#f4ebff] object-cover" src={teacher.avatar} alt="" aria-hidden="true" />
+                  ) : (
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f4ebff] text-[var(--text-body-medium)] font-medium text-[#7f56d9]">
+                      {teacher.initials}
+                    </span>
+                  )}
                   <button
-                    key={page}
-                    className={`pagination__number ${page === currentPage ? "is-active" : ""}`}
+                    className="p-0 text-left"
                     type="button"
-                    onClick={() => setCurrentPage(page)}
+                    onClick={() => {
+                      setSelectedTeacher(teacher);
+                      setActiveTab("personal");
+                    }}
                   >
-                    {page}
+                    <span className="text-sm font-semibold leading-5 tracking-[-0.35px] text-[var(--color-content-primary)]">{teacher.name}</span>
                   </button>
-                ))}
+                </div>
+                <StatusBadge status={teacher.status} />
               </div>
 
-              <button
-                className="pagination__button"
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                disabled={currentPage === totalPages}
-              >
-                <span>Próxima</span>
-              </button>
-            </footer>
-          ) : null}
-        </TableCard>
+              <div className="grid gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[var(--text-body-small)] font-medium leading-[1.33]">Contato</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm leading-5 text-[var(--color-neutral-500)]">{teacher.phone}</span>
+                    <span className="text-sm leading-5 text-[var(--color-neutral-600)]">{teacher.email}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[var(--text-body-small)] font-medium leading-[1.33]">Especialidade</span>
+                  <Pill label={teacher.specialty} tone={teacher.specialtyTone} />
+                </div>
+              </div>
+            </div>
+          )}
+          pagination={{
+            currentPage,
+            totalPages,
+            onPageChange: setCurrentPage,
+            ariaLabel: "Paginação da tabela de professores"
+          }}
+        />
       </main>
 
       {selectedTeacher ? (
@@ -619,13 +935,35 @@ export function TeachersPage() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onClose={closeDrawer}
-            personalAttachments={personalAttachmentsByTeacherId[selectedTeacher.id] ?? []}
+            personalAttachments={personalAttachmentsByTeacher[selectedTeacher.id] ?? []}
+            onOpenDocumentUploadModal={() => setIsDocumentUploadModalOpen(true)}
+            onViewPersonalAttachment={handleViewTeacherAttachment}
+            onDownloadPersonalAttachment={handleDownloadTeacherAttachment}
+            onRequestDeletePersonalAttachment={handleRequestDeleteTeacherAttachment}
           />
         </div>
       ) : null}
+
+      <TeacherDocumentUploadModal
+        isOpen={isDocumentUploadModalOpen}
+        fileError={documentUploadError}
+        onClose={closeDocumentUploadModal}
+        onFileSelected={handleAddTeacherDocument}
+      />
+      <TeacherAttachmentDeleteModal
+        isOpen={attachmentPendingDelete !== null}
+        attachmentName={attachmentPendingDelete?.fileName ?? ""}
+        onClose={closeAttachmentDeleteModal}
+        onConfirm={handleConfirmDeleteTeacherAttachment}
+      />
     </>
   );
 }
+
+
+
+
+
 
 
 

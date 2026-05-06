@@ -53,6 +53,55 @@ export type AttendanceSession = {
   students: AttendanceSessionStudent[];
 };
 
+const teacherNameByModuleAndClass: Partial<
+  Record<AttendanceClassOption["module"], Partial<Record<string, string>>>
+> = {
+  "Módulo I": {
+    "Classe 1": "Wendel Freitas",
+    "Classe 2": "Guilherme Costa"
+  },
+  "Módulo II": {
+    Teorial: "Henrique Sidério",
+    Solfejo: "Jean",
+    "Violino": "Erick Henrique",
+    "Flauta": "Luciane Paiva",
+    "Clarinete": "Rogério Oliveira",
+    "Saxofone": "Edilson Santos",
+    "Trompa": "Daniel Gomes",
+    "Trompete": "Davi Pereira",
+    "Eufônio e Tuba": "Henrique Siderio",
+    "Canto coral": "Olívia Gama",
+    Bateria: "Wellington Pericinotto",
+    Percussão: "Emerson de Souza",
+    "Violão": "Robson Farage",
+    "Guitarra": "Robson Farage",
+    "Contrabaixo": "Robson Farage",
+    "Violoncelo": "Josué Carlos"
+  },
+  "Módulo III": {
+    Teorial: "Henrique Sidério",
+    Solfejo: "Jean",
+    "Violino": "Erick Henrique",
+    "Flauta": "Luciane Paiva",
+    "Clarinete": "Rogério Oliveira",
+    "Saxofone": "Edilson Santos",
+    "Trompa": "Daniel Gomes",
+    "Trompete": "Davi Pereira",
+    "Eufônio e Tuba": "Henrique Siderio",
+    "Canto coral": "Olívia Gama",
+    Bateria: "Wellington Pericinotto",
+    Percussão: "Emerson de Souza",
+    "Violão": "Robson Farage",
+    "Guitarra": "Robson Farage",
+    "Contrabaixo": "Robson Farage",
+    "Violoncelo": "Josué Carlos"
+  }
+};
+
+function getTeacherName(module: AttendanceClassOption["module"], className: string) {
+  return teacherNameByModuleAndClass[module]?.[className] ?? "Professor(a) a definir";
+}
+
 export const attendanceHistory: AttendanceHistoryEntry[] = [
   {
     id: 1,
@@ -97,8 +146,8 @@ export const attendanceClassOptions: AttendanceClassOption[] = moduleOptions
       module,
       moduleLabel: module,
       title: `${module} - ${className}`,
-      teacherName: "Prof. Maria Silva",
-      studentCount: 40
+      teacherName: getTeacherName(module, className),
+      studentCount: module === "Módulo II" || module === "Módulo III" ? 10 : 40
     }))
   );
 
@@ -142,7 +191,7 @@ const attendanceSessionTemplates: Record<number, AttendanceSession> = {
     module: "Módulo I",
     moduleLabel: "Módulo I",
     className: "Classe 1",
-    teacherName: "Prof. Maria Silva",
+    teacherName: "Wendel Freitas",
     dateLabel: "12/01/2025, quarta-feira.",
     students: createSessionStudents("Módulo I", 101)
   }

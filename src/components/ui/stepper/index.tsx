@@ -1,20 +1,10 @@
 import { Check } from "lucide-react";
 
 import { cn } from "@/src/lib/utils";
+import { stepperConnectorStyles, stepperIndicatorStyles, stepperStyles } from "./stepper.styles";
+import type { StepperProps, StepperStatus } from "./stepper.types";
 
-export type StepperStatus = "complete" | "current" | "upcoming";
-
-type StepperItem = {
-  id: string;
-  label: string;
-};
-
-type StepperProps = {
-  steps: StepperItem[];
-  currentStep: number;
-  className?: string;
-  ariaLabel?: string;
-};
+export type { StepperItem, StepperProps, StepperStatus } from "./stepper.types";
 
 function getStepStatus(stepNumber: number, currentStep: number): StepperStatus {
   if (stepNumber < currentStep) {
@@ -30,7 +20,7 @@ function getStepStatus(stepNumber: number, currentStep: number): StepperStatus {
 
 export function Stepper({ steps, currentStep, className, ariaLabel = "Progresso" }: StepperProps) {
   return (
-    <ol className={cn("stepper", className)} aria-label={ariaLabel}>
+    <ol className={cn(stepperStyles(), className)} aria-label={ariaLabel}>
       {steps.map((step, index) => {
         const stepNumber = index + 1;
         const status = getStepStatus(stepNumber, currentStep);
@@ -40,15 +30,12 @@ export function Stepper({ steps, currentStep, className, ariaLabel = "Progresso"
         return (
           <li key={step.id} className="stepper__item">
             <div className="stepper__indicator-row">
-              <span className={cn("stepper__indicator", `stepper__indicator--${status}`)} aria-hidden="true">
+              <span className={stepperIndicatorStyles({ status })} aria-hidden="true">
                 {isComplete ? <Check /> : stepNumber}
               </span>
               {hasConnector ? (
                 <span
-                  className={cn(
-                    "stepper__connector",
-                    isComplete ? "stepper__connector--complete" : "stepper__connector--upcoming"
-                  )}
+                  className={stepperConnectorStyles({ status: isComplete ? "complete" : "upcoming" })}
                   aria-hidden="true"
                 />
               ) : null}

@@ -1,41 +1,9 @@
 import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/src/lib/utils";
-
-const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-full border text-xs font-medium whitespace-nowrap",
-  {
-    variants: {
-      variant: {
-        default: "border-transparent bg-primary/10 text-primary",
-        success: "border-transparent bg-emerald-50 text-emerald-700",
-        error: "border-transparent bg-rose-50 text-rose-700",
-        warning: "border-transparent bg-amber-50 text-amber-700",
-        violet: "border-transparent bg-violet-50 text-violet-700",
-        orange: "border-transparent bg-orange-50 text-orange-600",
-        blue: "border-transparent bg-sky-50 text-sky-700",
-        pink: "border-transparent bg-pink-50 text-pink-700",
-        subtle: "border-transparent bg-secondary text-secondary-foreground",
-      },
-      appearance: {
-        default: "px-2 py-0.5",
-        dot: "gap-1.5 py-0.5 pl-1.5 pr-2",
-        icon: "gap-1.5 py-0.5 pl-1.5 pr-2",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      appearance: "default",
-    },
-  },
-);
-
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement>,
-    VariantProps<typeof badgeVariants> {
-  icon?: React.ReactNode;
-}
+import { badgeDotStyles, badgeIconStyles, badgeVariants } from "./badge.styles";
+import type { BadgeProps } from "./badge.types";
+export type { BadgeProps } from "./badge.types";
 
 function Badge({ className, variant, appearance, icon, children, ...props }: BadgeProps) {
   const resolvedAppearance = appearance ?? (icon ? "icon" : "default");
@@ -44,9 +12,9 @@ function Badge({ className, variant, appearance, icon, children, ...props }: Bad
 
   return (
     <span className={cn(badgeVariants({ variant, appearance: resolvedAppearance }), className)} {...props}>
-      {shouldShowDot ? <span className="badge__dot" aria-hidden="true" /> : null}
+      {shouldShowDot ? <span className={badgeDotStyles} aria-hidden="true" /> : null}
       {shouldShowIcon ? (
-        <span className="badge__icon" aria-hidden="true">
+        <span className={badgeIconStyles} aria-hidden="true">
           {icon}
         </span>
       ) : null}

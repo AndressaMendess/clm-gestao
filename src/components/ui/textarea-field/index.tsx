@@ -1,19 +1,19 @@
-import type { TextareaHTMLAttributes } from "react";
-
 import { cn } from "@/src/lib/utils";
-
-type TextareaFieldProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
-  label: string;
-  helperText?: string;
-  wrapperClassName?: string;
-};
+import {
+  textareaFieldHelperStyles,
+  textareaFieldInputStyles,
+  textareaFieldLabelStyles,
+  textareaFieldWrapperStyles
+} from "./textarea-field.styles";
+import type { TextareaFieldProps } from "./textarea-field.types";
+export type { TextareaFieldProps } from "./textarea-field.types";
 
 export function TextareaField({ label, helperText, className, wrapperClassName, ...props }: TextareaFieldProps) {
   return (
-    <label className={cn("textarea-field", wrapperClassName)}>
-      <span>{label}</span>
-      <textarea className={cn("textarea-field__input", className)} {...props} />
-      {helperText ? <small className="textarea-field__helper">{helperText}</small> : null}
+    <label className={cn(textareaFieldWrapperStyles, wrapperClassName)}>
+      <span className={textareaFieldLabelStyles}>{label}</span>
+      <textarea className={cn(textareaFieldInputStyles, className)} {...props} />
+      {helperText ? <small className={textareaFieldHelperStyles}>{helperText}</small> : null}
     </label>
   );
 }

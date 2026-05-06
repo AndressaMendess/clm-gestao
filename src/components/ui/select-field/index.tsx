@@ -1,26 +1,26 @@
-import { useId, type SelectHTMLAttributes } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/src/lib/utils";
-
-export type SelectFieldOption = {
-  value: string;
-  label: string;
-};
-
-type SelectFieldProps = {
-  value: string;
-  ariaLabel: string;
-  options: SelectFieldOption[];
-  onChange: SelectHTMLAttributes<HTMLSelectElement>["onChange"];
-  variant?: "filter" | "form";
-  className?: string;
-  label?: string;
-  showLabel?: boolean;
-  helperText?: string;
-  helperTone?: "default" | "error" | "success";
-  fieldClassName?: string;
-} & Omit<SelectHTMLAttributes<HTMLSelectElement>, "value" | "onChange" | "aria-label">;
+import {
+  selectFieldChevronStyles,
+  selectFieldHelperStyles,
+  selectFieldLabelStyles,
+  selectFieldMenuStyles,
+  selectFieldNativeStyles,
+  selectFieldOptionStyles,
+  selectFieldRootStyles,
+  selectFieldTriggerStyles,
+  selectFieldValueStyles,
+  selectFieldWrapperStyles
+} from "./select-field.styles";
+import type { SelectFieldProps } from "./select-field.types";
+export type {
+  SelectFieldHelperTone,
+  SelectFieldOption,
+  SelectFieldProps,
+  SelectFieldVariant
+} from "./select-field.types";
 
 export function SelectField({
   value,
@@ -39,13 +39,58 @@ export function SelectField({
 }: SelectFieldProps) {
   const generatedId = useId();
   const selectId = id ?? generatedId;
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedOption = useMemo(
+    () => options.find((option) => option.value === value) ?? options[0],
+    [options, value]
+  );
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    return () => window.removeEventListener("mousedown", handlePointerDown);
+  }, [isOpen]);
+
+  const handleOptionSelect = (nextValue: string) => {
+    setIsOpen(false);
+
+    onChange?.({
+      target: { value: nextValue },
+      currentTarget: { value: nextValue }
+    } as unknown as ChangeEvent<HTMLSelectElement>);
+  };
 
   const selectControl = (
-    <div className={cn("select-field", `select-field--${variant}`, className)}>
-      <select
+    <div ref={rootRef} className={cn(selectFieldRootStyles({ variant, open: isOpen }), className)}>
+      <button
         id={selectId}
+        type="button"
         aria-label={ariaLabel}
-        className={cn("select-field__select", variant === "filter" && "filter-button__select")}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={selectFieldTriggerStyles({ variant })}
+        onClick={() => setIsOpen((current) => !current)}
+        disabled={props.disabled}
+      >
+        <span className={selectFieldValueStyles}>{selectedOption?.label ?? ""}</span>
+      </button>
+      <ChevronDown className={selectFieldChevronStyles} aria-hidden="true" />
+
+      <select
+        aria-hidden="true"
+        tabIndex={-1}
+        className={selectFieldNativeStyles}
         value={value}
         onChange={onChange}
         {...props}
@@ -56,7 +101,26 @@ export function SelectField({
           </option>
         ))}
       </select>
-      <ChevronDown className="select-field__chevron" aria-hidden="true" />
+
+      {isOpen ? (
+        <ul className={selectFieldMenuStyles} role="listbox" aria-labelledby={selectId}>
+          {options.map((option) => {
+            const isSelected = option.value === value;
+
+            return (
+              <li key={option.value} role="option" aria-selected={isSelected}>
+                <button
+                  type="button"
+                  className={selectFieldOptionStyles({ selected: isSelected })}
+                  onClick={() => handleOptionSelect(option.value)}
+                >
+                  {option.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </div>
   );
 
@@ -65,10 +129,10 @@ export function SelectField({
   }
 
   return (
-    <div className={cn("select-field-wrapper", fieldClassName)}>
-      {showLabel && label ? <label htmlFor={selectId} className="select-field-wrapper__label">{label}</label> : null}
+    <div className={cn(selectFieldWrapperStyles, fieldClassName)}>
+      {showLabel && label ? <label htmlFor={selectId} className={selectFieldLabelStyles}>{label}</label> : null}
       {selectControl}
-      {helperText ? <small className={cn("select-field-wrapper__helper", `is-${helperTone}`)}>{helperText}</small> : null}
+      {helperText ? <small className={selectFieldHelperStyles({ tone: helperTone })}>{helperText}</small> : null}
     </div>
   );
 }

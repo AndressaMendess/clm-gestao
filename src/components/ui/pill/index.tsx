@@ -1,10 +1,11 @@
 import { Badge } from "@/src/components/ui/badge";
+import { pillStyles } from "./pill.styles";
+import type { PillProps, PillTone } from "./pill.types";
+export type { PillProps, PillTone } from "./pill.types";
 
-export type PillTone = "violet" | "orange" | "blue" | "pink";
-
-export function Pill({ label, tone }: { label: string; tone: PillTone }) {
+export function Pill({ label, tone }: PillProps) {
   return (
-    <Badge className={`pill pill--${tone}`} variant={tone}>
+    <Badge className={pillStyles({ tone })} variant={tone}>
       {label}
     </Badge>
   );
